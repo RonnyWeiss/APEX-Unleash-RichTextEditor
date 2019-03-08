@@ -1,6 +1,6 @@
 var unleashRTE = (function () {
     "use strict";
-    var scriptVersion = "1.0";
+    var scriptVersion = "1.0.1";
     var util = {
         version: "1.0.5",
         isAPEX: function () {
@@ -194,7 +194,6 @@ var unleashRTE = (function () {
                 });
                 if (div[0].innerHTML) {
                     var iFrameDOM = $("#cke_" + pEditor.element.$.id).find("iframe").contents();
-                    console.log(div);
                     iFrameDOM.find(".cke_editable").html(div[0].innerHTML);
                 }
             }
@@ -249,7 +248,7 @@ var unleashRTE = (function () {
     function uploadFiles(pFiles, pEditor, pOpts) {
         var items2Submit = pOpts.items2Submit;
 
-        if (!pFiles) return;
+        if (!pFiles || pFiles.length === 0) return;
 
         if (pOpts.showLoader) {
             util.loader.start(pOpts.affElementDIV);
@@ -296,6 +295,9 @@ var unleashRTE = (function () {
                         }
                     })(file);
                     reader.readAsBinaryString(file);
+                } else if (fileIDX == pFiles.length) {
+                    util.loader.stop(pOpts.affElementDIV);
+                    fileIDX++;
                 }
             }
         } catch (e) {

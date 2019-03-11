@@ -1,6 +1,6 @@
 var unleashRTE = (function () {
     "use strict";
-    var scriptVersion = "1.0.2";
+    var scriptVersion = "1.1";
     var util = {
         version: "1.0.5",
         isAPEX: function () {
@@ -148,6 +148,22 @@ var unleashRTE = (function () {
                 console.error(finalConfig);
             }
             return finalConfig;
+        },
+        splitString2Array: function (pString) {
+            if (util.isAPEX() && apex.server && apex.server.chunk) {
+                return apex.server.chunk(pString);
+            } else {
+                /* apex.server.chunk only avail on APEX 18.2+ */
+                var splitSize = 8000;
+                var tmpSplit;
+                var retArr = [];
+                if (pString.length > splitSize) {
+                    for (retArr = [], tmpSplit = 0; tmpSplit < pString.length;) retArr.push(pString.substr(tmpSplit, splitSize)), tmpSplit += splitSize;
+                    return retArr
+                }
+                retArr.push(pString);
+                return retArr;
+            }
         }
     };
 
@@ -264,7 +280,7 @@ var unleashRTE = (function () {
                     reader.onloadend = (function (pFile) {
                         return function (pEvent) {
                             var base64Str = btoa(pEvent.target.result);
-                            var base64Arr = apex.server.chunk(base64Str);
+                            var base64Arr = util.splitString2Array(base64Str);
 
                             util.debug.info("Start upload of " + pFile.name + " (" + pFile.type + ")");
                             apex.server.plugin(pOpts.ajaxID, {
@@ -412,7 +428,7 @@ var unleashRTE = (function () {
         var clob;
 
         cleanUpImageSrc(CKEDITOR.instances[pOpts.affElement], pOpts);
-        clob = apex.item(pOpts.affElement).getValue();
+        clob = util.getItemValue(pOpts.affElement);
 
         if (pOpts.unEscapeHTML) {
             clob = util.unEscapeHTML(clob);
@@ -422,7 +438,7 @@ var unleashRTE = (function () {
             clob = sanitizeCLOB(clob, pOpts);
         }
 
-        var chunkArr = apex.server.chunk(clob);
+        var chunkArr = util.splitString2Array(clob);
 
         var items2Submit = pOpts.items2Submit;
         apex.server.plugin(pOpts.ajaxID, {

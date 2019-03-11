@@ -1,6 +1,6 @@
 var unleashRTE = (function () {
     "use strict";
-    var scriptVersion = "1.0.1";
+    var scriptVersion = "1.0.2";
     var util = {
         version: "1.0.5",
         isAPEX: function () {
@@ -173,7 +173,7 @@ var unleashRTE = (function () {
      ***********************************************************************/
     function updateUpImageSrc(pEditor, pOpts) {
         var div = $("<div></div>");
-        var items2Submit = pOpts.items2Submit;
+        var items2SubmitImgDown = pOpts.items2SubmitImgDown;
 
         try {
             if (pEditor._.data) {
@@ -185,7 +185,7 @@ var unleashRTE = (function () {
                         var imgSRC = apex.server.pluginUrl(pOpts.ajaxID, {
                             x01: "PRINT_IMAGE",
                             x02: pk,
-                            pageItems: items2Submit
+                            pageItems: items2SubmitImgDown
                         });
                         imgItem.src = imgSRC;
                     } else {
@@ -211,7 +211,7 @@ var unleashRTE = (function () {
     function addImage(pFileName, pPK, pOpts, pEditor) {
         try {
             if (pPK) {
-                var items2Submit = pOpts.items2Submit;
+                var items2SubmitImgDown = pOpts.items2SubmitImgDown;
                 var p = $("<p></p>");
                 var img = $("<img>");
                 img.attr("alt", "aih#" + pFileName);
@@ -221,10 +221,10 @@ var unleashRTE = (function () {
                 var imgSRC = apex.server.pluginUrl(pOpts.ajaxID, {
                     x01: "PRINT_IMAGE",
                     x02: pPK,
-                    pageItems: items2Submit
+                    pageItems: items2SubmitImgDown
                 });
 
-                img.attr("src", imgSRC + "?#");
+                img.attr("src", imgSRC);
                 p.append(img);
 
                 var iFrameDOM = $("#cke_" + pEditor.element.$.id).find("iframe").contents();
@@ -246,7 +246,7 @@ var unleashRTE = (function () {
      **
      ***********************************************************************/
     function uploadFiles(pFiles, pEditor, pOpts) {
-        var items2Submit = pOpts.items2Submit;
+        var items2SubmitImgUp = pOpts.items2SubmitImgUp;
 
         if (!pFiles || pFiles.length === 0) return;
 
@@ -272,7 +272,7 @@ var unleashRTE = (function () {
                                 x02: pFile.name,
                                 x03: pFile.type,
                                 f01: base64Arr,
-                                pageItems: items2Submit
+                                pageItems: items2SubmitImgUp
                             }, {
                                 success: function (pData) {
                                     util.debug.info("Upload of " + pFile.name + " successful.");
@@ -316,11 +316,10 @@ var unleashRTE = (function () {
             util.debug.info(pEditor);
             /* on drop image */
             pEditor.document.on('drop', function (e) {
-                util.debug.info("File droped");
                 e.data.preventDefault(true);
+                util.debug.info("File droped");
                 var dt = e.data.$.dataTransfer;
                 uploadFiles(dt.files, pEditor, pOpts);
-
             });
 
             /* on pate image e.g. Screenshot */
@@ -369,15 +368,16 @@ var unleashRTE = (function () {
             if (pOpts.escapeHTML) {
                 str = util.escapeHTML(str);
             }
+            var _Editor = CKEDITOR.instances[pOpts.affElement];
             CKEDITOR.on('instanceReady', function (ev) {
                 if (loaded !== true) {
                     util.debug.info("CKEDITOR instanceReady fired");
                     util.setItemValue(pOpts.affElement, str);
-                    CKEDITOR.instances[pOpts.affElement].on('contentDom', function () {
-                        updateUpImageSrc(CKEDITOR.instances[pOpts.affElement], pOpts);
-                        addEventHandler(CKEDITOR.instances[pOpts.affElement], pOpts);
-                        apex.event.trigger(pOpts.affElementID, 'clobloadfinished');
+                    _Editor.on('contentDom', function () {
+                        addEventHandler(_Editor, pOpts);
+                        updateUpImageSrc(_Editor, pOpts);
                         util.loader.stop(pOpts.affElementDIV);
+                        apex.event.trigger(pOpts.affElementID, 'clobloadfinished');
                     });
                     loaded = true;
                 }
@@ -387,16 +387,15 @@ var unleashRTE = (function () {
                 if (loaded !== true) {
                     util.debug.info("No Instance Ready event from CKEDITOR");
                     util.setItemValue(pOpts.affElement, str);
-                    CKEDITOR.instances[pOpts.affElement].on('contentDom', function () {
-                        updateUpImageSrc(CKEDITOR.instances[pOpts.affElement], pOpts);
-                        addEventHandler(CKEDITOR.instances[pOpts.affElement], pOpts);
-                        apex.event.trigger(pOpts.affElementID, 'clobloadfinished');
+                    _Editor.on('contentDom', function () {
+                        addEventHandler(_Editor, pOpts);
+                        updateUpImageSrc(_Editor, pOpts);
                         util.loader.stop(pOpts.affElementDIV);
+                        apex.event.trigger(pOpts.affElementID, 'clobloadfinished');
                     });
                     loaded = true;
                 }
-            }, 750);
-
+            }, 700);
         } catch (e) {
             util.debug.error("Error while render CLOB");
             util.debug.error(e);
@@ -414,7 +413,7 @@ var unleashRTE = (function () {
 
         cleanUpImageSrc(CKEDITOR.instances[pOpts.affElement], pOpts);
         clob = apex.item(pOpts.affElement).getValue();
-        console.log(clob);
+
         if (pOpts.unEscapeHTML) {
             clob = util.unEscapeHTML(clob);
         }
@@ -424,12 +423,10 @@ var unleashRTE = (function () {
         }
 
         var chunkArr = apex.server.chunk(clob);
-        var collectionName = apex.item(pOpts.collectionNameItem).getValue();
 
         var items2Submit = pOpts.items2Submit;
         apex.server.plugin(pOpts.ajaxID, {
             x01: "UPLOAD_CLOB",
-            x02: collectionName,
             f01: chunkArr,
             pageItems: items2Submit
         }, {
@@ -457,6 +454,7 @@ var unleashRTE = (function () {
      ***********************************************************************/
     return {
         initialize: function (pThis, pOpts) {
+
             util.debug.info(pOpts);
 
             var opts = pOpts;

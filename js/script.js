@@ -1,6 +1,6 @@
 var unleashRTE = (function () {
     "use strict";
-    var scriptVersion = "1.1";
+    var scriptVersion = "1.1.1";
     var util = {
         version: "1.0.5",
         isAPEX: function () {
@@ -211,6 +211,7 @@ var unleashRTE = (function () {
                 if (div[0].innerHTML) {
                     var iFrameDOM = $("#cke_" + pEditor.element.$.id).find("iframe").contents();
                     iFrameDOM.find(".cke_editable").html(div[0].innerHTML);
+
                 }
             }
         } catch (e) {
@@ -366,7 +367,7 @@ var unleashRTE = (function () {
      ** Used to print the clob value to the elements that are in data json
      **
      ***********************************************************************/
-    function printClob(pData, pOpts) {
+    function printClob(pThis, pData, pOpts) {
         try {
             var str;
             var loaded = false;
@@ -394,6 +395,7 @@ var unleashRTE = (function () {
                         updateUpImageSrc(_Editor, pOpts);
                         util.loader.stop(pOpts.affElementDIV);
                         apex.event.trigger(pOpts.affElementID, 'clobloadfinished');
+                        apex.da.resume(pThis.resumeCallback, false);
                     });
                     loaded = true;
                 }
@@ -408,6 +410,7 @@ var unleashRTE = (function () {
                         updateUpImageSrc(_Editor, pOpts);
                         util.loader.stop(pOpts.affElementDIV);
                         apex.event.trigger(pOpts.affElementID, 'clobloadfinished');
+                        apex.da.resume(pThis.resumeCallback, false);
                     });
                     loaded = true;
                 }
@@ -416,6 +419,7 @@ var unleashRTE = (function () {
             util.debug.error("Error while render CLOB");
             util.debug.error(e);
             apex.event.trigger(pOpts.affElementID, 'clobloaderror');
+            apex.da.resume(pThis.resumeCallback, true);
         }
     }
 
@@ -424,7 +428,7 @@ var unleashRTE = (function () {
      ** Used to upload the clob value from an item to database
      **
      ***********************************************************************/
-    function uploadClob(pOpts) {
+    function uploadClob(pThis, pOpts) {
         var clob;
 
         cleanUpImageSrc(CKEDITOR.instances[pOpts.affElement], pOpts);
@@ -451,6 +455,7 @@ var unleashRTE = (function () {
                 util.loader.stop(pOpts.affElementDIV);
                 util.debug.info("Upload successful.");
                 apex.event.trigger(pOpts.affElementID, 'clobsavefinished');
+                apex.da.resume(pThis.resumeCallback, false);
             },
             error: function (jqXHR, textStatus, errorThrown) {
                 util.loader.stop(pOpts.affElementDIV);
@@ -459,6 +464,7 @@ var unleashRTE = (function () {
                 util.debug.error(textStatus);
                 util.debug.error(errorThrown);
                 apex.event.trigger(pOpts.affElementID, 'clobsaveerror');
+                apex.da.resume(pThis.resumeCallback, true);
             }
         });
     }
@@ -541,7 +547,7 @@ var unleashRTE = (function () {
                             pageItems: items2Submit
                         }, {
                             success: function (pData) {
-                                printClob(pData, opts);
+                                printClob(pThis, pData, opts);
                             },
                             error: function (d) {
                                 util.debug.error(d.responseText);
@@ -549,7 +555,7 @@ var unleashRTE = (function () {
                             dataType: "json"
                         });
                 } else {
-                    uploadClob(opts);
+                    uploadClob(pThis, opts);
                 }
             }
         }

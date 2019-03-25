@@ -159,11 +159,11 @@ wwv_flow_api.create_plugin(
 '                    USING VR_CLOB;',
 '            EXCEPTION',
 '                WHEN OTHERS THEN',
-'                    APEX_DEBUG.ERROR(''Error while executing dynamic PL/SQL Block after Upload CLOB.'');',
+'                    APEX_DEBUG.ERROR(''APEX Unleash RichTextEditor - Error while executing dynamic PL/SQL Block after Upload CLOB.'');',
 '                    APEX_DEBUG.ERROR(DBMS_UTILITY.FORMAT_ERROR_BACKTRACE);',
 '            END;',
 '',
-'            APEX_DEBUG.INFO(''Upload and Execute of Dynamic PL/SQL Block successful with CLOB: '' ||',
+'            APEX_DEBUG.INFO(''APEX Unleash RichTextEditor - Upload and Execute of Dynamic PL/SQL Block successful with CLOB: '' ||',
 '            DBMS_LOB.GETLENGTH(VR_CLOB) ||',
 '            '' Bytes.'');',
 '',
@@ -173,7 +173,7 @@ wwv_flow_api.create_plugin(
 '                    USING IN VR_PK, OUT VR_FILE_NAME, OUT VR_MIME_TYPE, OUT VR_BLOB;',
 '            EXCEPTION',
 '                WHEN OTHERS THEN',
-'                    APEX_DEBUG.ERROR(''Error while executing dynamic PL/SQL Block to get Blob Source for Image Download.'');',
+'                    APEX_DEBUG.ERROR(''APEX Unleash RichTextEditor - Error while executing dynamic PL/SQL Block to get Blob Source for Image Download.'');',
 '                    APEX_DEBUG.ERROR(SQLERRM);',
 '                    APEX_DEBUG.ERROR(DBMS_UTILITY.FORMAT_ERROR_BACKTRACE);',
 '                    RAISE;',
@@ -216,13 +216,13 @@ wwv_flow_api.create_plugin(
 '                        USING IN VR_FILE_NAME, IN VR_MIME_TYPE, IN VR_BLOB, OUT VR_PK;',
 '                EXCEPTION',
 '                    WHEN OTHERS THEN',
-'                        APEX_DEBUG.ERROR(''Error while executing dynamic PL/SQL Block after Upload Image.'');',
+'                        APEX_DEBUG.ERROR(''APEX Unleash RichTextEditor - Error while executing dynamic PL/SQL Block after Upload Image.'');',
 '                        APEX_DEBUG.ERROR(SQLERRM);',
 '                        APEX_DEBUG.ERROR(DBMS_UTILITY.FORMAT_ERROR_BACKTRACE);',
 '                        RAISE;',
 '                END;',
 '',
-'                APEX_DEBUG.INFO(''Upload and Execute of Dynamic PL/SQL Block successful with Image: '' ||',
+'                APEX_DEBUG.INFO(''APEX Unleash RichTextEditor - Upload and Execute of Dynamic PL/SQL Block successful with Image: '' ||',
 '                DBMS_LOB.GETLENGTH(VR_BLOB) ||',
 '                '' Bytes and returned pk: '' ||',
 '                VR_PK);',
@@ -240,7 +240,7 @@ wwv_flow_api.create_plugin(
 '            );',
 '            APEX_JSON.CLOSE_OBJECT;',
 '        ELSE',
-'            APEX_DEBUG.ERROR(''No Case found in F_AJAX'');',
+'            APEX_DEBUG.ERROR(''APEX Unleash RichTextEditor - No Case found in F_AJAX'');',
 '    END CASE;',
 '',
 '    RETURN VR_RESULT;',
@@ -299,9 +299,9 @@ wwv_flow_api.create_plugin(
 '<ul>',
 '<li>Load and save CLOB</li>',
 '<li>It can remove dangerous HTML code from the CLOB or you can escaped the whole CLOB</li>',
-'<li>If images are inserted into the RTE via Drag''nDrop or screenshots are inserted into the RTE via CTRL+V, they are loaded into the database as BLOB and only referenced in the CLOB</li>',
+'<li>If images are inserted into the RTE via Drag''n''Drop or screenshots are inserted into the RTE via CTRL+V, they are loaded into the database as BLOB and only referenced in the CLOB</li>',
 '</ul>'))
-,p_version_identifier=>'1.1.1'
+,p_version_identifier=>'1.1.2'
 ,p_about_url=>'https://github.com/RonnyWeiss/APEX-Unleash-RichTextEditor'
 ,p_files_version=>37
 );
@@ -426,6 +426,7 @@ wwv_flow_api.create_plugin_attribute(
 ,p_is_required=>true
 ,p_default_value=>wwv_flow_string.join(wwv_flow_t_varchar2(
 'DECLARE',
+'    /* You need to use V(''P1_COL_NAME'') because :P1_COL_NAME is not supported here */',
 '    VR_COL_NAME   VARCHAR2(100) := NVL( V(''P1_COLLECTION_NAME''), ''MY_COLLECTION'');',
 'BEGIN',
 '    APEX_COLLECTION.CREATE_OR_TRUNCATE_COLLECTION(P_COLLECTION_NAME   => VR_COL_NAME);',
@@ -446,6 +447,7 @@ wwv_flow_api.create_plugin_attribute(
 '<p>Use (SELECT V(''P1_ITEM'') FROM DUAL) for better perfromance when use in SQL Statement => See Oracle FAST_DUAL.</p>',
 '<pre>',
 'DECLARE',
+'    /* You need to use V(''P1_COL_NAME'') because :P1_COL_NAME is not supported here */',
 '    VR_COL_NAME   VARCHAR2(100) := NVL( V(''P1_COLLECTION_NAME''), ''MY_COLLECTION'');',
 'BEGIN',
 '    APEX_COLLECTION.CREATE_OR_TRUNCATE_COLLECTION(P_COLLECTION_NAME   => VR_COL_NAME);',
@@ -778,7 +780,12 @@ wwv_flow_api.create_plugin_attribute(
 'DECLARE',
 '    VR_FILE_NAME   VARCHAR2(200) := :FILE_NAME;',
 '    VR_MIME_TYPE   VARCHAR2(200) := :MIME_TYPE;',
+'     /* Please ignore PLS-00382: expression is of wrong type',
+'       because binding of :BLOB is not supported by current',
+'       APEX PL/SQL Validator ',
+'     */',
 '    VR_BLOB        BLOB := :BLOB;',
+'    /* You need to use V(''P1_COL_NAME'') because :P1_COL_NAME is not supported here */',
 '    VR_COL_NAME    VARCHAR2(200) := NVL(V(''P1_COL_NAME''),''IMG_COLLECTION'');',
 'BEGIN',
 '    BEGIN',
@@ -816,7 +823,12 @@ wwv_flow_api.create_plugin_attribute(
 'DECLARE',
 '    VR_FILE_NAME   VARCHAR2(200) := :FILE_NAME;',
 '    VR_MIME_TYPE   VARCHAR2(200) := :MIME_TYPE;',
+'     /* Please ignore PLS-00382: expression is of wrong type',
+'       because binding of :BLOB is not supported by current',
+'       APEX PL/SQL Validator ',
+'     */',
 '    VR_BLOB        BLOB := :BLOB;',
+'    /* You need to use V(''P1_COL_NAME'') because :P1_COL_NAME is not supported here */',
 '    VR_COL_NAME    VARCHAR2(200) := NVL(V(''P1_COL_NAME''),''IMG_COLLECTION'');',
 'BEGIN',
 '    BEGIN',
@@ -854,8 +866,13 @@ wwv_flow_api.create_plugin_attribute(
 'DECLARE',
 '    VR_FILE_NAME     VARCHAR2(200);',
 '    VR_MIME_TYPE     VARCHAR2(200);',
+'     /* Please ignore PLS-00382: expression is of wrong type',
+'       because binding of :BLOB is not supported by current',
+'       APEX PL/SQL Validator ',
+'     */',
 '    VR_BINARY_FILE   BLOB;',
 '    VR_PK            VARCHAR2(200) := :PK;',
+'    /* You need to use V(''P1_COL_NAME'') because :P1_COL_NAME is not supported here */',
 '    VR_COL_NAME      VARCHAR2(200) := NVL(',
 '        V(''P1_COL_NAME''),',
 '        ''IMG_COLLECTION''',
@@ -898,8 +915,13 @@ wwv_flow_api.create_plugin_attribute(
 'DECLARE',
 '    VR_FILE_NAME     VARCHAR2(200);',
 '    VR_MIME_TYPE     VARCHAR2(200);',
+'     /* Please ignore PLS-00382: expression is of wrong type',
+'       because binding of :BLOB is not supported by current',
+'       APEX PL/SQL Validator ',
+'     */',
 '    VR_BINARY_FILE   BLOB;',
 '    VR_PK            VARCHAR2(200) := :PK;',
+'    /* You need to use V(''P1_COL_NAME'') because :P1_COL_NAME is not supported here */',
 '    VR_COL_NAME      VARCHAR2(200) := NVL(',
 '        V(''P1_COL_NAME''),',
 '        ''IMG_COLLECTION''',
@@ -930,6 +952,9 @@ wwv_flow_api.create_plugin_attribute(
 'END;',
 '</pre>'))
 );
+end;
+/
+begin
 wwv_flow_api.create_plugin_event(
  p_id=>wwv_flow_api.id(33687976464323920257)
 ,p_plugin_id=>wwv_flow_api.id(33530820608659203767)
@@ -948,9 +973,6 @@ wwv_flow_api.create_plugin_event(
 ,p_name=>'clobsaveerror'
 ,p_display_name=>'CLOB save error'
 );
-end;
-/
-begin
 wwv_flow_api.create_plugin_event(
  p_id=>wwv_flow_api.id(33688245695924945201)
 ,p_plugin_id=>wwv_flow_api.id(33530820608659203767)

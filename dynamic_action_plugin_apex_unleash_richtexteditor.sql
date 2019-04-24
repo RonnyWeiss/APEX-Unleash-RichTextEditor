@@ -48,8 +48,7 @@ wwv_flow_api.create_plugin(
 '        ''UTF-8''',
 '    );',
 '    HTP.P(''Content-length: '' || DBMS_LOB.GETLENGTH(P_IN_BLOB));',
-'    HTP.P(''Content-Disposition: attachment; filename="'' ||',
-'    P_IN_FILE_NAME || ''"'');',
+'    HTP.P(''Content-Disposition: attachment; filename="'' || APEX_ESCAPE.HTML_ATTRIBUTE( P_IN_FILE_NAME ) || ''"'');',
 '    OWA_UTIL.HTTP_HEADER_CLOSE;',
 '    WPG_DOCLOAD.DOWNLOAD_FILE(VR_BLOB);',
 'END;',
@@ -301,7 +300,7 @@ wwv_flow_api.create_plugin(
 '<li>It can remove dangerous HTML code from the CLOB or you can escaped the whole CLOB</li>',
 '<li>If images are inserted into the RTE via Drag''n''Drop or screenshots are inserted into the RTE via CTRL+V, they are loaded into the database as BLOB and only referenced in the CLOB</li>',
 '</ul>'))
-,p_version_identifier=>'1.1.2'
+,p_version_identifier=>'1.2'
 ,p_about_url=>'https://github.com/RonnyWeiss/APEX-Unleash-RichTextEditor'
 ,p_files_version=>37
 );

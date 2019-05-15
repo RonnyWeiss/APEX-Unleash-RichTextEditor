@@ -1,6 +1,6 @@
 var unleashRTE = (function () {
     "use strict";
-    var scriptVersion = "1.2";
+    var scriptVersion = "1.2.1";
     var util = {
         version: "1.0.5",
         isAPEX: function () {

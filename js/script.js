@@ -1,6 +1,6 @@
 var unleashRTE = (function () {
     "use strict";
-    var scriptVersion = "1.2.1";
+    var scriptVersion = "1.3";
     var util = {
         version: "1.0.5",
         isAPEX: function () {
@@ -225,7 +225,7 @@ var unleashRTE = (function () {
      ** Used to add new image with download uri to rte
      **
      ***********************************************************************/
-    function addImage(pFileName, pPK, pOpts, pEditor) {
+    function addImage(pFileName, pPK, pOpts, pEditor, pImageSettings) {
         try {
             if (pPK) {
                 var items2SubmitImgDown = pOpts.items2SubmitImgDown;
@@ -233,7 +233,29 @@ var unleashRTE = (function () {
                 var img = $("<img>");
                 img.attr("alt", "aih#" + pFileName);
                 img.attr("title", pPK);
-                img.attr("width", pOpts.imgWidth);
+
+                try {
+                    if (pImageSettings.ratio < 1) {
+                        if (pImageSettings.height < pOpts.imgWidth) {
+                            img.attr("width", pImageSettings.width);
+                            img.attr("height", pImageSettings.height);
+                        } else {
+                            img.attr("height", Math.floor(pOpts.imgWidth));
+                            img.attr("width", Math.floor(pOpts.imgWidth * pImageSettings.ratio));
+                        }
+                    } else {
+                        if (pImageSettings.width < pOpts.imgWidth) {
+                            img.attr("width", pImageSettings.width);
+                            img.attr("height", pImageSettings.height);
+                        } else {
+                            img.attr("width", Math.floor(pOpts.imgWidth));
+                            img.attr("height", Math.floor(pOpts.imgWidth / pImageSettings.ratio));
+                        }
+                    }
+                } catch (e) {
+                    util.debug.error("Error while try to calculatio image width and height.");
+                    util.debug.error(e);
+                }
 
                 var imgSRC = apex.server.pluginUrl(pOpts.ajaxID, {
                     x01: "PRINT_IMAGE",
@@ -273,45 +295,58 @@ var unleashRTE = (function () {
 
         try {
             var fileIDX = 1;
+            var imageSettings = {};
             for (var i = 0; i < pFiles.length; i++) {
                 if (pFiles[i].type.indexOf("image") !== -1) {
                     var file = pFiles[i];
                     util.debug.info(file);
                     var reader = new FileReader();
+
                     reader.onloadend = (function (pFile) {
                         return function (pEvent) {
                             var base64Str = btoa(pEvent.target.result);
                             var base64Arr = util.splitString2Array(base64Str);
 
-                            util.debug.info("Start upload of " + pFile.name + " (" + pFile.type + ")");
-                            apex.server.plugin(pOpts.ajaxID, {
-                                x01: "UPLOAD_IMAGE",
-                                x02: pFile.name,
-                                x03: pFile.type,
-                                f01: base64Arr,
-                                pageItems: items2SubmitImgUp
-                            }, {
-                                success: function (pData) {
-                                    util.debug.info("Upload of " + pFile.name + " successful.");
-                                    if (fileIDX == pFiles.length) {
+                            var image = new Image();
+                            image.src = "data:" + file.type + ";base64," + base64Str;
+
+                            image.onload = function () {
+                                imageSettings.ratio = this.width / this.height;
+                                imageSettings.width = this.width;
+                                imageSettings.height = this.height;
+
+                                util.debug.info("Start upload of " + pFile.name + " (" + pFile.type + ")");
+                                apex.server.plugin(pOpts.ajaxID, {
+                                    x01: "UPLOAD_IMAGE",
+                                    x02: pFile.name,
+                                    x03: pFile.type,
+                                    f01: base64Arr,
+                                    pageItems: items2SubmitImgUp
+                                }, {
+                                    success: function (pData) {
+                                        util.debug.info("Upload of " + pFile.name + " successful.");
+                                        if (fileIDX == pFiles.length) {
+                                            util.loader.stop(pOpts.affElementDIV);
+                                        }
+                                        addImage(pFile.name, pData.pk, pOpts, pEditor, imageSettings);
+                                        fileIDX++;
+                                        apex.event.trigger(pOpts.affElementID, 'imageuploadifnished');
+                                    },
+                                    error: function (jqXHR, textStatus, errorThrown) {
+                                        util.debug.info("Upload error.");
+                                        util.debug.error(jqXHR);
+                                        util.debug.error(textStatus);
+                                        util.debug.error(errorThrown);
                                         util.loader.stop(pOpts.affElementDIV);
+                                        apex.event.trigger(pOpts.affElementID, 'imageuploaderror');
                                     }
-                                    addImage(pFile.name, pData.pk, pOpts, pEditor);
-                                    fileIDX++;
-                                    apex.event.trigger(pOpts.affElementID, 'imageuploadifnished');
-                                },
-                                error: function (jqXHR, textStatus, errorThrown) {
-                                    util.debug.info("Upload error.");
-                                    util.debug.error(jqXHR);
-                                    util.debug.error(textStatus);
-                                    util.debug.error(errorThrown);
-                                    util.loader.stop(pOpts.affElementDIV);
-                                    apex.event.trigger(pOpts.affElementID, 'imageuploaderror');
-                                }
-                            });
+                                });
+                            };
                         }
+
                     })(file);
                     reader.readAsBinaryString(file);
+
                 } else if (fileIDX == pFiles.length) {
                     util.loader.stop(pOpts.affElementDIV);
                     fileIDX++;

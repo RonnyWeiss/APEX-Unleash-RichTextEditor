@@ -253,7 +253,7 @@ var unleashRTE = (function () {
                         }
                     }
                 } catch (e) {
-                    util.debug.error("Error while try to calculatio image width and height.");
+                    util.debug.error("Error while try to calculate image width and height.");
                     util.debug.error(e);
                 }
 

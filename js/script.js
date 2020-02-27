@@ -1,8 +1,8 @@
 var unleashRTE = (function () {
     "use strict";
-    var scriptVersion = "1.3";
+    var scriptVersion = "2.0";
     var util = {
-        version: "1.0.5",
+        version: "1.2.5",
         isAPEX: function () {
             if (typeof (apex) !== 'undefined') {
                 return true;
@@ -68,7 +68,7 @@ var unleashRTE = (function () {
             str = String(str);
             return str
                 .replace(/&amp;/g, "&")
-                .replace(/&lt;/g, "<")
+                .replace(/&lt;/g, ">")
                 .replace(/&gt;/g, ">")
                 .replace(/&quot;/g, "\"")
                 .replace(/#x27;/g, "'")
@@ -102,45 +102,24 @@ var unleashRTE = (function () {
                 $(id + " > .ct-loader").remove();
             }
         },
-        setItemValue: function (itemName, value) {
-            if (util.isAPEX()) {
-                if (apex.item(itemName) && apex.item(itemName).node != false) {
-                    apex.item(itemName).setValue(value);
-                } else {
-                    console.error('Please choose a set item. Because the value (' + value + ') can not be set on item (' + itemName + ')');
-                }
-            } else {
-                console.error("Error while try to call apex.item" + e);
-            }
-        },
-        getItemValue: function (itemName) {
-            if (util.isAPEX()) {
-                if (apex.item(itemName) && apex.item(itemName).node != false) {
-                    return apex.item(itemName).getValue();
-                } else {
-                    console.error('Please choose a get item. Because the value (' + value + ') could not be get from item(' + itemName + ')');
-                }
-            } else {
-                console.error("Error while try to call apex.item" + e);
-            }
-        },
         jsonSaveExtend: function (srcConfig, targetConfig) {
             var finalConfig = {};
+            var tmpJSON = {};
             /* try to parse config json when string or just set */
             if (typeof targetConfig === 'string') {
                 try {
-                    targetConfig = JSON.parse(targetConfig);
+                    tmpJSON = JSON.parse(targetConfig);
                 } catch (e) {
                     console.error("Error while try to parse targetConfig. Please check your Config JSON. Standard Config will be used.");
                     console.error(e);
                     console.error(targetConfig);
                 }
             } else {
-                finalConfig = targetConfig;
+                tmpJSON = targetConfig;
             }
             /* try to merge with standard if any attribute is missing */
             try {
-                finalConfig = $.extend(true, srcConfig, targetConfig);
+                finalConfig = $.extend(true, srcConfig, tmpJSON);
             } catch (e) {
                 console.error('Error while try to merge 2 JSONs into standard JSON if any attribute is missing. Please check your Config JSON. Standard Config will be used.');
                 console.error(e);
@@ -174,8 +153,10 @@ var unleashRTE = (function () {
      ***********************************************************************/
     function cleanUpImageSrc(pEditor, pOpts) {
         try {
-            var iFrameDOM = $("#cke_" + pEditor.element.$.id).find("iframe").contents();
-            iFrameDOM.find(".cke_editable").find('img[alt*="aih#"]').attr("src", "aih");
+            var div = $("<div></div>");
+            div[0].innerHTML = pEditor.getData();
+            div.find('img[alt*="aih#"]').attr("src", "aih");
+            return div[0].innerHTML;
         } catch (e) {
             util.debug.error("Error while try to cleanup image source in dynamic added images in richtexteditor.");
             util.debug.error(e);
@@ -187,33 +168,45 @@ var unleashRTE = (function () {
      ** Used to cleanup image src before rte is saved
      **
      ***********************************************************************/
-    function updateUpImageSrc(pEditor, pOpts) {
+    function updateUpImageSrc(pEditor, pOpts, pCon) {
         var div = $("<div></div>");
         var items2SubmitImgDown = pOpts.items2SubmitImgDown;
 
         try {
-            if (pEditor._.data) {
-                div.html(pEditor._.data);
-                var imgItems = div.find('img[alt*="aih#"]');
-                $.each(imgItems, function (idx, imgItem) {
-                    if (imgItem.title) {
-                        var pk = imgItem.title;
-                        var imgSRC = apex.server.pluginUrl(pOpts.ajaxID, {
-                            x01: "PRINT_IMAGE",
-                            x02: pk,
-                            pageItems: items2SubmitImgDown
-                        });
-                        imgItem.src = imgSRC;
-                    } else {
-                        util.debug.error("img in richtexteditor has no title. Title is used a primary key to get image from db.")
-                    }
-                });
-                if (div[0].innerHTML) {
-                    var iFrameDOM = $("#cke_" + pEditor.element.$.id).find("iframe").contents();
-                    iFrameDOM.find(".cke_editable").html(div[0].innerHTML);
-
+            div.html(pCon);
+            var imgItems = div.find('img[alt*="aih#"]');
+            $.each(imgItems, function (idx, imgItem) {
+                if (imgItem.title) {
+                    var pk = imgItem.title;
+                    var imgSRC = apex.server.pluginUrl(pOpts.ajaxID, {
+                        x01: "PRINT_IMAGE",
+                        x02: pk,
+                        pageItems: items2SubmitImgDown
+                    });
+                    imgItem.src = imgSRC;
+                } else {
+                    util.debug.error("img in richtexteditor has no title. Title is used a primary key to get image from db.")
                 }
+            });
+
+            /* force sub elements not to break out of the region*/
+            div
+                .find("img")
+                .css("max-width", "100%")
+                .css("object-fit", "contain")
+                .css("object-position", "50% 0%");
+
+            if (div[0].innerHTML) {
+                util.debug.info({
+                    "final_editor_html_on_load": div[0].innerHTML
+                });
+                pEditor.insertHtml(div[0].innerHTML, 'unfiltered_html');
+                util.debug.info({
+                    "final_editor_on_load": pEditor
+                });
+
             }
+            addEventHandler(pEditor, pOpts);
         } catch (e) {
             util.debug.error("Error while try to load images when loading rich text editor.");
             util.debug.error(e);
@@ -229,7 +222,6 @@ var unleashRTE = (function () {
         try {
             if (pPK) {
                 var items2SubmitImgDown = pOpts.items2SubmitImgDown;
-                var p = $("<p></p>");
                 var img = $("<img>");
                 img.attr("alt", "aih#" + pFileName);
                 img.attr("title", pPK);
@@ -264,11 +256,7 @@ var unleashRTE = (function () {
                 });
 
                 img.attr("src", imgSRC);
-                p.append(img);
-
-                var iFrameDOM = $("#cke_" + pEditor.element.$.id).find("iframe").contents();
-                iFrameDOM.find(".cke_editable").append(p);
-
+                pEditor.insertHtml(img[0].outerHTML);
             } else {
                 util.debug.error("No primary key set for images please, so image could not be added to RTE. Please check PL/SQL Block if out parameter is set.");
             }
@@ -365,20 +353,29 @@ var unleashRTE = (function () {
      ***********************************************************************/
     function addEventHandler(pEditor, pOpts) {
         try {
-            util.debug.info(pEditor);
             /* on drop image */
             pEditor.document.on('drop', function (e) {
                 e.data.preventDefault(true);
-                util.debug.info("File droped");
+                e.cancel();
+                e.stop();
+                util.debug.info({
+                    "file_droped": e
+                });
                 var dt = e.data.$.dataTransfer;
                 uploadFiles(dt.files, pEditor, pOpts);
             });
 
             /* on pate image e.g. Screenshot */
             pEditor.on("paste", function (e) {
-                util.debug.info("File pasted");
-                if (e.data.dataTransfer._.files) {
-                    var files = e.data.dataTransfer._.files;
+                if (e.data.dataTransfer._.files && e.data.dataTransfer._.files.length > 0) {
+                    util.debug.info({
+                        "file_pasted": e
+                    });
+
+                    var files = [];
+                    files.push(e.data.dataTransfer._.files[0]);
+                    e.stop();
+                    e.cancel();
                     uploadFiles(files, pEditor, pOpts);
                 }
             });
@@ -405,7 +402,6 @@ var unleashRTE = (function () {
     function printClob(pThis, pData, pOpts) {
         try {
             var str;
-            var loaded = false;
 
             if (pData && pData.row && pData.row[0] && pData.row[0].CLOB_VALUE) {
                 str = pData.row[0].CLOB_VALUE;
@@ -420,36 +416,31 @@ var unleashRTE = (function () {
             if (pOpts.escapeHTML) {
                 str = util.escapeHTML(str);
             }
-            var _Editor = CKEDITOR.instances[pOpts.affElement];
-            CKEDITOR.on('instanceReady', function (ev) {
-                if (loaded !== true) {
-                    util.debug.info("CKEDITOR instanceReady fired");
-                    util.setItemValue(pOpts.affElement, str);
-                    _Editor.on('contentDom', function () {
-                        addEventHandler(_Editor, pOpts);
-                        updateUpImageSrc(_Editor, pOpts);
-                        util.loader.stop(pOpts.affElementDIV);
-                        apex.event.trigger(pOpts.affElementID, 'clobloadfinished');
-                        apex.da.resume(pThis.resumeCallback, false);
-                    });
-                    loaded = true;
-                }
+            var affCKE = CKEDITOR.instances[pOpts.affElement];
+            util.debug.info({
+                "editor": affCKE
             });
-            /* bad workaround if instance ready is not fired or this plugin loads to late. if u have a better idead please update */
-            setTimeout(function () {
-                if (loaded !== true) {
-                    util.debug.info("No Instance Ready event from CKEDITOR");
-                    util.setItemValue(pOpts.affElement, str);
-                    _Editor.on('contentDom', function () {
-                        addEventHandler(_Editor, pOpts);
-                        updateUpImageSrc(_Editor, pOpts);
-                        util.loader.stop(pOpts.affElementDIV);
-                        apex.event.trigger(pOpts.affElementID, 'clobloadfinished');
-                        apex.da.resume(pThis.resumeCallback, false);
-                    });
-                    loaded = true;
-                }
-            }, 700);
+
+            function startIt() {
+                updateUpImageSrc(affCKE, pOpts, str);
+                util.loader.stop(pOpts.affElementDIV);
+                apex.event.trigger(pOpts.affElementID, 'clobloadfinished');
+                apex.da.resume(pThis.resumeCallback, false);
+                affCKE.on('contentDom', function () {
+                    addEventHandler(affCKE, pOpts);
+                });
+            }
+
+            if (affCKE.instanceReady === true) {
+                startIt();
+                util.debug.info("start instance was ready");
+            } else {
+                CKEDITOR.on('instanceReady', function () {
+                    startIt();
+                    util.debug.info("start on instance ready");
+                });
+            }
+
         } catch (e) {
             util.debug.error("Error while render CLOB");
             util.debug.error(e);
@@ -464,10 +455,7 @@ var unleashRTE = (function () {
      **
      ***********************************************************************/
     function uploadClob(pThis, pOpts) {
-        var clob;
-
-        cleanUpImageSrc(CKEDITOR.instances[pOpts.affElement], pOpts);
-        clob = util.getItemValue(pOpts.affElement);
+        var clob = cleanUpImageSrc(CKEDITOR.instances[pOpts.affElement], pOpts);
 
         if (pOpts.unEscapeHTML) {
             clob = util.unEscapeHTML(clob);

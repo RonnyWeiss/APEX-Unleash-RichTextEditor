@@ -27,7 +27,7 @@ prompt APPLICATION 103428 - Plug-in Samples
 -- Application Export:
 --   Application:     103428
 --   Name:            Plug-in Samples
---   Date and Time:   20:19 Thursday February 27, 2020
+--   Date and Time:   20:22 Thursday February 27, 2020
 --   Exported By:     RONNYWEISS@OUTLOOK.COM
 --   Flashback:       0
 --   Export Type:     Component Export
@@ -326,7 +326,7 @@ wwv_flow_api.create_plugin(
 '    VR_USE_IMAGE_UPLOADER   P_DYNAMIC_ACTION.ATTRIBUTE_13%TYPE := P_DYNAMIC_ACTION.ATTRIBUTE_13;',
 'BEGIN',
 '    APEX_JAVASCRIPT.ADD_LIBRARY(',
-'        P_NAME        => ''unleashrte.pkgd'',',
+'        P_NAME        => ''unleashrte.pkgd.min'',',
 '        P_DIRECTORY   => P_PLUGIN.FILE_PREFIX,',
 '        P_VERSION     => NULL,',
 '        P_KEY         => ''unleashrtejssrc''',

@@ -218,7 +218,7 @@ var unleashRTE = (function () {
      ** Used to add new image with download uri to rte
      **
      ***********************************************************************/
-    function addImage(pFileName, pPK, pOpts, pEditor, pImageSettings) {
+    function addImage(pFileName, pPK, pOpts, pImageSettings) {
         try {
             if (pPK) {
                 var items2SubmitImgDown = pOpts.items2SubmitImgDown;
@@ -256,7 +256,9 @@ var unleashRTE = (function () {
                 });
 
                 img.attr("src", imgSRC);
-                pEditor.insertHtml(img[0].outerHTML);
+
+                return img;
+
             } else {
                 util.debug.error("No primary key set for images please, so image could not be added to RTE. Please check PL/SQL Block if out parameter is set.");
             }
@@ -283,7 +285,7 @@ var unleashRTE = (function () {
 
         try {
             var fileIDX = 1;
-            var imageSettings = {};
+            var div = $("<div></div>");
             for (var i = 0; i < pFiles.length; i++) {
                 if (pFiles[i].type.indexOf("image") !== -1) {
                     var file = pFiles[i];
@@ -299,6 +301,7 @@ var unleashRTE = (function () {
                             image.src = "data:" + file.type + ";base64," + base64Str;
 
                             image.onload = function () {
+                                var imageSettings = {};
                                 imageSettings.ratio = this.width / this.height;
                                 imageSettings.width = this.width;
                                 imageSettings.height = this.height;
@@ -313,10 +316,11 @@ var unleashRTE = (function () {
                                 }, {
                                     success: function (pData) {
                                         util.debug.info("Upload of " + pFile.name + " successful.");
+                                        div.append(addImage(pFile.name, pData.pk, pOpts, imageSettings));
                                         if (fileIDX == pFiles.length) {
+                                            pEditor.insertHtml(div.html());
                                             util.loader.stop(pOpts.affElementDIV);
                                         }
-                                        addImage(pFile.name, pData.pk, pOpts, pEditor, imageSettings);
                                         fileIDX++;
                                         apex.event.trigger(pOpts.affElementID, 'imageuploadifnished');
                                     },

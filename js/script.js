@@ -1,6 +1,6 @@
 var unleashRTE = (function () {
     "use strict";
-    var scriptVersion = "2.0";
+    var scriptVersion = "2.0.1";
     var util = {
         version: "1.2.5",
         isAPEX: function () {
@@ -222,6 +222,10 @@ var unleashRTE = (function () {
         try {
             if (pPK) {
                 var items2SubmitImgDown = pOpts.items2SubmitImgDown;
+                var figured = $("<figure></figure>");
+                figured.css("text-align", "center");
+                figured.addClass("image")
+
                 var img = $("<img>");
                 img.attr("alt", "aih#" + pFileName);
                 img.attr("title", pPK);
@@ -256,8 +260,13 @@ var unleashRTE = (function () {
                 });
 
                 img.attr("src", imgSRC);
+                figured.append(img);
 
-                return img;
+                var figCaption = $("<figcaption></figcaption>");
+                figCaption.text(pFileName);
+                figured.append(figCaption);
+
+                return figured;
 
             } else {
                 util.debug.error("No primary key set for images please, so image could not be added to RTE. Please check PL/SQL Block if out parameter is set.");
@@ -286,6 +295,7 @@ var unleashRTE = (function () {
         try {
             var fileIDX = 1;
             var div = $("<div></div>");
+
             for (var i = 0; i < pFiles.length; i++) {
                 if (pFiles[i].type.indexOf("image") !== -1) {
                     var file = pFiles[i];
@@ -316,8 +326,11 @@ var unleashRTE = (function () {
                                 }, {
                                     success: function (pData) {
                                         util.debug.info("Upload of " + pFile.name + " successful.");
+
+                                        div.append("< p > & nbsp; < /p>");
                                         div.append(addImage(pFile.name, pData.pk, pOpts, imageSettings));
                                         if (fileIDX == pFiles.length) {
+                                            div.append("<p>&nbsp;</p>");
                                             pEditor.insertHtml(div.html());
                                             util.loader.stop(pOpts.affElementDIV);
                                         }

@@ -1,6 +1,6 @@
 var unleashRTE = (function () {
     "use strict";
-    var scriptVersion = "2.0.1";
+    var scriptVersion = "2.0.2";
     var util = {
         version: "1.2.5",
         isAPEX: function () {
@@ -452,7 +452,7 @@ var unleashRTE = (function () {
                 startIt();
                 util.debug.info("start instance was ready");
             } else {
-                CKEDITOR.on('instanceReady', function () {
+                affCKE.on('instanceReady', function () {
                     startIt();
                     util.debug.info("start on instance ready");
                 });

@@ -27,7 +27,7 @@ prompt APPLICATION 103428 - Ronny's Demo App
 -- Application Export:
 --   Application:     103428
 --   Name:            Ronny's Demo App
---   Date and Time:   05:58 Tuesday May 12, 2020
+--   Date and Time:   06:03 Tuesday May 12, 2020
 --   Exported By:     RONNYWEISS@OUTLOOK.COM
 --   Flashback:       0
 --   Export Type:     Component Export
@@ -448,7 +448,7 @@ wwv_flow_api.create_plugin_attribute(
 ,p_attribute_scope=>'COMPONENT'
 ,p_attribute_sequence=>4
 ,p_display_sequence=>150
-,p_prompt=>'Items to Submit'
+,p_prompt=>'Items to Submit (NO SSP Protected allowed because of APEX Bug)'
 ,p_attribute_type=>'PAGE ITEMS'
 ,p_is_required=>false
 ,p_is_translatable=>false
@@ -464,7 +464,7 @@ wwv_flow_api.create_plugin_attribute(
 ,p_attribute_scope=>'COMPONENT'
 ,p_attribute_sequence=>5
 ,p_display_sequence=>170
-,p_prompt=>'Items to Submit'
+,p_prompt=>'Items to Submit (NO SSP Protected allowed because of APEX Bug)'
 ,p_attribute_type=>'PAGE ITEMS'
 ,p_is_required=>false
 ,p_is_translatable=>false

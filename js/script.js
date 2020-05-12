@@ -1,6 +1,6 @@
 var unleashRTE = (function () {
     "use strict";
-    var scriptVersion = "2.0.2";
+    var scriptVersion = "2.0.3";
     var util = {
         version: "1.2.5",
         isAPEX: function () {
@@ -327,12 +327,12 @@ var unleashRTE = (function () {
                                     success: function (pData) {
                                         util.debug.info("Upload of " + pFile.name + " successful.");
 
-                                        div.append("< p > & nbsp; < /p>");
                                         div.append(addImage(pFile.name, pData.pk, pOpts, imageSettings));
                                         if (fileIDX == pFiles.length) {
-                                            div.append("<p>&nbsp;</p>");
                                             pEditor.insertHtml(div.html());
                                             util.loader.stop(pOpts.affElementDIV);
+                                        } else {
+                                            div.append("<p>&nbsp;</p>");
                                         }
                                         fileIDX++;
                                         apex.event.trigger(pOpts.affElementID, 'imageuploadifnished');

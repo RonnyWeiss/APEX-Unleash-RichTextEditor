@@ -1,8 +1,25 @@
 var unleashRTE = (function () {
     "use strict";
-    var scriptVersion = "2.0.3";
     var util = {
-        version: "1.2.5",
+        /**********************************************************************************
+         ** required functions 
+         *********************************************************************************/
+        featureInfo: {
+            name: "APEX-Unleash-RichTextEditor",
+            info: {
+                scriptVersion: "2.1",
+                utilVersion: "1.3.5",
+                url: "https://github.com/RonnyWeiss",
+                license: "MIT"
+            }
+        },
+        isDefinedAndNotNull: function (pInput) {
+            if (typeof pInput !== "undefined" && pInput !== null && pInput != "") {
+                return true;
+            } else {
+                return false;
+            }
+        },
         isAPEX: function () {
             if (typeof (apex) !== 'undefined') {
                 return true;
@@ -10,20 +27,51 @@ var unleashRTE = (function () {
                 return false;
             }
         },
+        varType: function (pObj) {
+            if (typeof pObj === "object") {
+                var arrayConstructor = [].constructor;
+                var objectConstructor = ({}).constructor;
+                if (pObj.constructor === arrayConstructor) {
+                    return "array";
+                }
+                if (pObj.constructor === objectConstructor) {
+                    return "json";
+                }
+            } else {
+                return typeof pObj;
+            }
+        },
         debug: {
-            info: function (str) {
+            info: function () {
                 if (util.isAPEX()) {
-                    apex.debug.info(str);
+                    var i = 0;
+                    var arr = [];
+                    for (var prop in arguments) {
+                        arr[i] = arguments[prop];
+                        i++;
+                    }
+                    arr.push(util.featureInfo);
+                    apex.debug.info.apply(this, arr);
                 }
             },
-            error: function (str) {
+            error: function () {
+                var i = 0;
+                var arr = [];
+                for (var prop in arguments) {
+                    arr[i] = arguments[prop];
+                    i++;
+                }
+                arr.push(util.featureInfo);
                 if (util.isAPEX()) {
-                    apex.debug.error(str);
+                    apex.debug.error.apply(this, arr);
                 } else {
-                    console.error(str);
+                    console.error.apply(this, arr);
                 }
             }
         },
+        /**********************************************************************************
+         ** optinal functions 
+         *********************************************************************************/
         escapeHTML: function (str) {
             if (str === null) {
                 return null;
@@ -75,7 +123,10 @@ var unleashRTE = (function () {
                 .replace(/&#x2F;/g, "\\");
         },
         loader: {
-            start: function (id) {
+            start: function (id, setMinHeight) {
+                if (setMinHeight) {
+                    $(id).css("min-height", "100px");
+                }
                 if (util.isAPEX()) {
                     apex.util.showSpinner($(id));
                 } else {
@@ -83,6 +134,9 @@ var unleashRTE = (function () {
                     var faLoader = $("<span></span>");
                     faLoader.attr("id", "loader" + id);
                     faLoader.addClass("ct-loader");
+                    faLoader.css("text-align", "center");
+                    faLoader.css("width", "100%");
+                    faLoader.css("display", "block");
 
                     /* define refresh icon with animation */
                     var faRefresh = $("<i></i>");
@@ -97,7 +151,10 @@ var unleashRTE = (function () {
                     $(id).append(faLoader);
                 }
             },
-            stop: function (id) {
+            stop: function (id, removeMinHeight) {
+                if (removeMinHeight) {
+                    $(id).css("min-height", "");
+                }
                 $(id + " > .u-Processing").remove();
                 $(id + " > .ct-loader").remove();
             }
@@ -110,38 +167,46 @@ var unleashRTE = (function () {
                 try {
                     tmpJSON = JSON.parse(targetConfig);
                 } catch (e) {
-                    console.error("Error while try to parse targetConfig. Please check your Config JSON. Standard Config will be used.");
-                    console.error(e);
-                    console.error(targetConfig);
+                    util.debug.error({
+                        "msg": "Error while try to parse targetConfig. Please check your Config JSON. Standard Config will be used.",
+                        "err": e,
+                        "targetConfig": targetConfig
+                    });
                 }
             } else {
-                tmpJSON = targetConfig;
+                tmpJSON = $.extend(true, {}, targetConfig);
             }
             /* try to merge with standard if any attribute is missing */
             try {
-                finalConfig = $.extend(true, srcConfig, tmpJSON);
+                finalConfig = $.extend(true, {}, srcConfig, tmpJSON);
             } catch (e) {
-                console.error('Error while try to merge 2 JSONs into standard JSON if any attribute is missing. Please check your Config JSON. Standard Config will be used.');
-                console.error(e);
-                finalConfig = srcConfig;
-                console.error(finalConfig);
+                finalConfig = $.extend(true, {}, srcConfig);
+                util.debug.error({
+                    "msg": "Error while try to merge 2 JSONs into standard JSON if any attribute is missing. Please check your Config JSON. Standard Config will be used.",
+                    "err": e,
+                    "finalConfig": finalConfig
+                });
             }
             return finalConfig;
         },
         splitString2Array: function (pString) {
-            if (util.isAPEX() && apex.server && apex.server.chunk) {
-                return apex.server.chunk(pString);
-            } else {
-                /* apex.server.chunk only avail on APEX 18.2+ */
-                var splitSize = 8000;
-                var tmpSplit;
-                var retArr = [];
-                if (pString.length > splitSize) {
-                    for (retArr = [], tmpSplit = 0; tmpSplit < pString.length;) retArr.push(pString.substr(tmpSplit, splitSize)), tmpSplit += splitSize;
-                    return retArr
+            if (util.isDefinedAndNotNull(pString) && pString.length > 0) {
+                if (util.isAPEX() && apex.server && apex.server.chunk) {
+                    return apex.server.chunk(pString);
+                } else {
+                    /* apex.server.chunk only avail on APEX 18.2+ */
+                    var splitSize = 8000;
+                    var tmpSplit;
+                    var retArr = [];
+                    if (pString.length > splitSize) {
+                        for (retArr = [], tmpSplit = 0; tmpSplit < pString.length;) retArr.push(pString.substr(tmpSplit, splitSize)), tmpSplit += splitSize;
+                        return retArr
+                    }
+                    retArr.push(pString);
+                    return retArr;
                 }
-                retArr.push(pString);
-                return retArr;
+            } else {
+                return [];
             }
         }
     };
@@ -176,8 +241,11 @@ var unleashRTE = (function () {
             div.html(pCon);
             var imgItems = div.find('img[alt*="aih#"]');
             $.each(imgItems, function (idx, imgItem) {
-                if (imgItem.title) {
-                    var pk = imgItem.title;
+                var pk = imgItem.title;
+                if (!pk) {
+                    pk = imgItem.alt.split("aih##")[1];
+                }
+                if (pk) {
                     var imgSRC = apex.server.pluginUrl(pOpts.ajaxID, {
                         x01: "PRINT_IMAGE",
                         x02: pk,
@@ -200,11 +268,10 @@ var unleashRTE = (function () {
                 util.debug.info({
                     "final_editor_html_on_load": div[0].innerHTML
                 });
-                pEditor.insertHtml(div[0].innerHTML, 'unfiltered_html');
+                pEditor.setData(div[0].innerHTML);
                 util.debug.info({
                     "final_editor_on_load": pEditor
                 });
-
             }
             addEventHandler(pEditor, pOpts);
         } catch (e) {
@@ -227,7 +294,7 @@ var unleashRTE = (function () {
                 figured.addClass("image")
 
                 var img = $("<img>");
-                img.attr("alt", "aih#" + pFileName);
+                img.attr("alt", "aih##" + pPK);
                 img.attr("title", pPK);
 
                 try {
@@ -329,7 +396,13 @@ var unleashRTE = (function () {
 
                                         div.append(addImage(pFile.name, pData.pk, pOpts, imageSettings));
                                         if (fileIDX == pFiles.length) {
-                                            pEditor.insertHtml(div.html());
+                                            if (pOpts.version === 5) {
+                                                var viewFragment = pEditor.data.processor.toView(div.html());
+                                                var modelFragment = pEditor.data.toModel(viewFragment);
+                                                pEditor.model.insertContent(modelFragment, pEditor.model.document.selection);
+                                            } else {
+                                                pEditor.insertHtml(div.html());
+                                            }
                                             util.loader.stop(pOpts.affElementDIV);
                                         } else {
                                             div.append("<p>&nbsp;</p>");
@@ -371,31 +444,56 @@ var unleashRTE = (function () {
     function addEventHandler(pEditor, pOpts) {
         try {
             /* on drop image */
-            pEditor.document.on('drop', function (e) {
-                e.data.preventDefault(true);
-                e.cancel();
-                e.stop();
-                util.debug.info({
-                    "file_droped": e
-                });
-                var dt = e.data.$.dataTransfer;
-                uploadFiles(dt.files, pEditor, pOpts);
-            });
-
-            /* on pate image e.g. Screenshot */
-            pEditor.on("paste", function (e) {
-                if (e.data.dataTransfer._.files && e.data.dataTransfer._.files.length > 0) {
-                    util.debug.info({
-                        "file_pasted": e
-                    });
-
-                    var files = [];
-                    files.push(e.data.dataTransfer._.files[0]);
+            if (pOpts.version === 5) {
+                pEditor.editing.view.document.on('drop', function (e, data) {
                     e.stop();
+                    util.debug.info({
+                        "file_droped": e
+                    });
+                    var dt = data.dataTransfer;
+                    uploadFiles(dt.files, pEditor, pOpts);
+                });
+
+                /* on pate image e.g. Screenshot */
+                pEditor.editing.view.document.on("paste", function (e, data) {
+                    if (data.dataTransfer.files && data.dataTransfer.files.length > 0) {
+                        util.debug.info({
+                            "file_pasted": e
+                        });
+
+                        var files = [];
+                        files.push(data.dataTransfer.files[0]);
+                        e.stop();
+                        uploadFiles(files, pEditor, pOpts);
+                    }
+                });
+            } else {
+                pEditor.document.on('drop', function (e) {
+                    e.data.preventDefault(true);
                     e.cancel();
-                    uploadFiles(files, pEditor, pOpts);
-                }
-            });
+                    e.stop();
+                    util.debug.info({
+                        "file_droped": e
+                    });
+                    var dt = e.data.$.dataTransfer;
+                    uploadFiles(dt.files, pEditor, pOpts);
+                });
+
+                /* on pate image e.g. Screenshot */
+                pEditor.on("paste", function (e) {
+                    if (e.data.dataTransfer._.files && e.data.dataTransfer._.files.length > 0) {
+                        util.debug.info({
+                            "file_pasted": e
+                        });
+
+                        var files = [];
+                        files.push(e.data.dataTransfer._.files[0]);
+                        e.stop();
+                        e.cancel();
+                        uploadFiles(files, pEditor, pOpts);
+                    }
+                });
+            }
         } catch (e) {
             util.debug.error("Error while try to paste drop or pasted content in RTE");
             util.debug.error(e);
@@ -409,6 +507,23 @@ var unleashRTE = (function () {
      ***********************************************************************/
     function sanitizeCLOB(pCLOB, pOpts) {
         return DOMPurify.sanitize(pCLOB, pOpts.sanitizeOptions);
+    }
+
+    /***********************************************************************
+     **
+     ** Used go get editor obj for different versions
+     **
+     ***********************************************************************/
+    function getEditor(pEement) {
+
+        var domEl = document.querySelector('.ck-editor__editable');
+        if (domEl && domEl.ckeditorInstance) {
+            return domEl.ckeditorInstance;
+        } else if (CKEDITOR && CKEDITOR.instances) {
+            return CKEDITOR.instances[pEement];
+        } else {
+            util.debug.error("No CKE Editor found!");
+        }
     }
 
     /***********************************************************************
@@ -433,29 +548,33 @@ var unleashRTE = (function () {
             if (pOpts.escapeHTML) {
                 str = util.escapeHTML(str);
             }
-            var affCKE = CKEDITOR.instances[pOpts.affElement];
-            util.debug.info({
-                "editor": affCKE
-            });
-
-            function startIt() {
-                updateUpImageSrc(affCKE, pOpts, str);
-                util.loader.stop(pOpts.affElementDIV);
-                apex.event.trigger(pOpts.affElementID, 'clobloadfinished');
-                apex.da.resume(pThis.resumeCallback, false);
-                affCKE.on('contentDom', function () {
-                    addEventHandler(affCKE, pOpts);
+            var affCKE = getEditor(pOpts.affElement);
+            if (affCKE) {
+                util.debug.info({
+                    "editor": affCKE
                 });
-            }
 
-            if (affCKE.instanceReady === true) {
-                startIt();
-                util.debug.info("start instance was ready");
-            } else {
-                affCKE.on('instanceReady', function () {
+                function startIt() {
+                    updateUpImageSrc(affCKE, pOpts, str);
+                    util.loader.stop(pOpts.affElementDIV);
+                    apex.event.trigger(pOpts.affElementID, 'clobloadfinished');
+                    apex.da.resume(pThis.resumeCallback, false);
+                    affCKE.on('contentDom', function () {
+                        addEventHandler(affCKE, pOpts);
+                    });
+                }
+
+                if (pOpts.version === 5) {
                     startIt();
-                    util.debug.info("start on instance ready");
-                });
+                } else if (affCKE.instanceReady === true) {
+                    startIt();
+                    util.debug.info("start instance was ready");
+                } else {
+                    affCKE.on('instanceReady', function () {
+                        startIt();
+                        util.debug.info("start on instance ready");
+                    });
+                }
             }
 
         } catch (e) {
@@ -466,47 +585,52 @@ var unleashRTE = (function () {
         }
     }
 
+
+
     /***********************************************************************
      **
      ** Used to upload the clob value from an item to database
      **
      ***********************************************************************/
     function uploadClob(pThis, pOpts) {
-        var clob = cleanUpImageSrc(CKEDITOR.instances[pOpts.affElement], pOpts);
+        var edi = getEditor(pOpts.affElement);
+        if (edi) {
+            var clob = cleanUpImageSrc(edi, pOpts);
 
-        if (pOpts.unEscapeHTML) {
-            clob = util.unEscapeHTML(clob);
-        }
-
-        if (pOpts.sanitize) {
-            clob = sanitizeCLOB(clob, pOpts);
-        }
-
-        var chunkArr = util.splitString2Array(clob);
-
-        var items2Submit = pOpts.items2Submit;
-        apex.server.plugin(pOpts.ajaxID, {
-            x01: "UPLOAD_CLOB",
-            f01: chunkArr,
-            pageItems: items2Submit
-        }, {
-            dataType: "text",
-            success: function (pData) {
-                util.loader.stop(pOpts.affElementDIV);
-                util.debug.info("Upload successful.");
-                apex.event.trigger(pOpts.affElementID, 'clobsavefinished');
-                apex.da.resume(pThis.resumeCallback, false);
-            },
-            error: function (jqXHR, textStatus, errorThrown) {
-                util.loader.stop(pOpts.affElementDIV);
-                util.debug.info("Upload error.");
-                util.debug.error(jqXHR);
-                util.debug.error(textStatus);
-                util.debug.error(errorThrown);
-                apex.event.trigger(pOpts.affElementID, 'clobsaveerror');
-                apex.da.resume(pThis.resumeCallback, true);
+            if (pOpts.unEscapeHTML) {
+                clob = util.unEscapeHTML(clob);
             }
-        });
+
+            if (pOpts.sanitize) {
+                clob = sanitizeCLOB(clob, pOpts);
+            }
+
+            var chunkArr = util.splitString2Array(clob);
+
+            var items2Submit = pOpts.items2Submit;
+            apex.server.plugin(pOpts.ajaxID, {
+                x01: "UPLOAD_CLOB",
+                f01: chunkArr,
+                pageItems: items2Submit
+            }, {
+                dataType: "text",
+                success: function (pData) {
+                    util.loader.stop(pOpts.affElementDIV);
+                    util.debug.info("Upload successful.");
+                    apex.event.trigger(pOpts.affElementID, 'clobsavefinished');
+                    apex.da.resume(pThis.resumeCallback, false);
+                },
+                error: function (jqXHR, textStatus, errorThrown) {
+                    util.loader.stop(pOpts.affElementDIV);
+                    util.debug.info("Upload error.");
+                    util.debug.error(jqXHR);
+                    util.debug.error(textStatus);
+                    util.debug.error(errorThrown);
+                    apex.event.trigger(pOpts.affElementID, 'clobsaveerror');
+                    apex.da.resume(pThis.resumeCallback, true);
+                }
+            });
+        }
     }
 
     /***********************************************************************
@@ -562,6 +686,12 @@ var unleashRTE = (function () {
                 opts.useImageUploader = true;
             } else {
                 opts.useImageUploader = false;
+            }
+
+            if (typeof CKEDITOR != "undefined" && CKEDITOR.version) {
+                opts.version = CKEDITOR.version;
+            } else {
+                opts.version = 5;
             }
 
             if (pThis.affectedElements[0]) {

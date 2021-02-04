@@ -164,7 +164,7 @@ var unleashRTE = (function () {
                 } else {
                     apex.debug.error({
                         "fct": util.featureDetails.name + " - " + "updateUpImageSrc",
-                        "msg": "img in richtexteditor has no title. Title is used a primary key to get image from db.",
+                        "msg": "Primary key of img[alt*=\"aih#\"] is missing",
                         "featureDetails": util.featureDetails
                     });
                 }

@@ -1,77 +1,13 @@
 var unleashRTE = (function () {
     "use strict";
     var util = {
-        /**********************************************************************************
-         ** required functions 
-         *********************************************************************************/
-        featureInfo: {
+        featureDetails: {
             name: "APEX-Unleash-RichTextEditor",
-            info: {
-                scriptVersion: "2.1",
-                utilVersion: "1.3.5",
-                url: "https://github.com/RonnyWeiss",
-                license: "MIT"
-            }
+            scriptVersion: "2.1.1",
+            utilVersion: "1.4",
+            url: "https://github.com/RonnyWeiss",
+            license: "MIT"
         },
-        isDefinedAndNotNull: function (pInput) {
-            if (typeof pInput !== "undefined" && pInput !== null && pInput != "") {
-                return true;
-            } else {
-                return false;
-            }
-        },
-        isAPEX: function () {
-            if (typeof (apex) !== 'undefined') {
-                return true;
-            } else {
-                return false;
-            }
-        },
-        varType: function (pObj) {
-            if (typeof pObj === "object") {
-                var arrayConstructor = [].constructor;
-                var objectConstructor = ({}).constructor;
-                if (pObj.constructor === arrayConstructor) {
-                    return "array";
-                }
-                if (pObj.constructor === objectConstructor) {
-                    return "json";
-                }
-            } else {
-                return typeof pObj;
-            }
-        },
-        debug: {
-            info: function () {
-                if (util.isAPEX()) {
-                    var i = 0;
-                    var arr = [];
-                    for (var prop in arguments) {
-                        arr[i] = arguments[prop];
-                        i++;
-                    }
-                    arr.push(util.featureInfo);
-                    apex.debug.info.apply(this, arr);
-                }
-            },
-            error: function () {
-                var i = 0;
-                var arr = [];
-                for (var prop in arguments) {
-                    arr[i] = arguments[prop];
-                    i++;
-                }
-                arr.push(util.featureInfo);
-                if (util.isAPEX()) {
-                    apex.debug.error.apply(this, arr);
-                } else {
-                    console.error.apply(this, arr);
-                }
-            }
-        },
-        /**********************************************************************************
-         ** optinal functions 
-         *********************************************************************************/
         escapeHTML: function (str) {
             if (str === null) {
                 return null;
@@ -86,18 +22,7 @@ var unleashRTE = (function () {
                     /*do nothing */
                 }
             }
-            if (util.isAPEX()) {
-                return apex.util.escapeHTML(String(str));
-            } else {
-                str = String(str);
-                return str
-                    .replace(/&/g, "&amp;")
-                    .replace(/</g, "&lt;")
-                    .replace(/>/g, "&gt;")
-                    .replace(/"/g, "&quot;")
-                    .replace(/'/g, "&#x27;")
-                    .replace(/\//g, "&#x2F;");
-            }
+            return apex.util.escapeHTML(String(str));
         },
         unEscapeHTML: function (str) {
             if (str === null) {
@@ -127,29 +52,7 @@ var unleashRTE = (function () {
                 if (setMinHeight) {
                     $(id).css("min-height", "100px");
                 }
-                if (util.isAPEX()) {
-                    apex.util.showSpinner($(id));
-                } else {
-                    /* define loader */
-                    var faLoader = $("<span></span>");
-                    faLoader.attr("id", "loader" + id);
-                    faLoader.addClass("ct-loader");
-                    faLoader.css("text-align", "center");
-                    faLoader.css("width", "100%");
-                    faLoader.css("display", "block");
-
-                    /* define refresh icon with animation */
-                    var faRefresh = $("<i></i>");
-                    faRefresh.addClass("fa fa-refresh fa-2x fa-anim-spin");
-                    faRefresh.css("background", "rgba(121,121,121,0.6)");
-                    faRefresh.css("border-radius", "100%");
-                    faRefresh.css("padding", "15px");
-                    faRefresh.css("color", "white");
-
-                    /* append loader */
-                    faLoader.append(faRefresh);
-                    $(id).append(faLoader);
-                }
+                apex.util.showSpinner($(id));
             },
             stop: function (id, removeMinHeight) {
                 if (removeMinHeight) {
@@ -167,7 +70,8 @@ var unleashRTE = (function () {
                 try {
                     tmpJSON = JSON.parse(targetConfig);
                 } catch (e) {
-                    util.debug.error({
+                    apex.debug.error({
+                        "module": "util.js",
                         "msg": "Error while try to parse targetConfig. Please check your Config JSON. Standard Config will be used.",
                         "err": e,
                         "targetConfig": targetConfig
@@ -181,7 +85,8 @@ var unleashRTE = (function () {
                 finalConfig = $.extend(true, {}, srcConfig, tmpJSON);
             } catch (e) {
                 finalConfig = $.extend(true, {}, srcConfig);
-                util.debug.error({
+                apex.debug.error({
+                    "module": "util.js",
                     "msg": "Error while try to merge 2 JSONs into standard JSON if any attribute is missing. Please check your Config JSON. Standard Config will be used.",
                     "err": e,
                     "finalConfig": finalConfig
@@ -190,8 +95,8 @@ var unleashRTE = (function () {
             return finalConfig;
         },
         splitString2Array: function (pString) {
-            if (util.isDefinedAndNotNull(pString) && pString.length > 0) {
-                if (util.isAPEX() && apex.server && apex.server.chunk) {
+            if (typeof pString !== "undefined" && pString !== null && pString != "" && pString.length > 0) {
+                if (apex && apex.server && apex.server.chunk) {
                     return apex.server.chunk(pString);
                 } else {
                     /* apex.server.chunk only avail on APEX 18.2+ */
@@ -223,8 +128,12 @@ var unleashRTE = (function () {
             div.find('img[alt*="aih#"]').attr("src", "aih");
             return div[0].innerHTML;
         } catch (e) {
-            util.debug.error("Error while try to cleanup image source in dynamic added images in richtexteditor.");
-            util.debug.error(e);
+            apex.debug.error({
+                "fct": util.featureDetails.name + " - " + "cleanUpImageSrc",
+                "msg": "Error while try to cleanup image source in dynamic added images in richtexteditor.",
+                "err": e,
+                "featureDetails": util.featureDetails
+            });
         }
     }
 
@@ -253,7 +162,11 @@ var unleashRTE = (function () {
                     });
                     imgItem.src = imgSRC;
                 } else {
-                    util.debug.error("img in richtexteditor has no title. Title is used a primary key to get image from db.")
+                    apex.debug.error({
+                        "fct": util.featureDetails.name + " - " + "updateUpImageSrc",
+                        "msg": "img in richtexteditor has no title. Title is used a primary key to get image from db.",
+                        "featureDetails": util.featureDetails
+                    });
                 }
             });
 
@@ -265,18 +178,28 @@ var unleashRTE = (function () {
                 .css("object-position", "50% 0%");
 
             if (div[0].innerHTML) {
-                util.debug.info({
-                    "final_editor_html_on_load": div[0].innerHTML
+                apex.debug.info({
+                    "fct": util.featureDetails.name + " - " + "updateUpImageSrc",
+                    "final_editor_html_on_load": div[0].innerHTML,
+                    "featureDetails": util.featureDetails
                 });
+
                 pEditor.setData(div[0].innerHTML);
-                util.debug.info({
-                    "final_editor_on_load": pEditor
+
+                apex.debug.info({
+                    "fct": util.featureDetails.name + " - " + "updateUpImageSrc",
+                    "final_editor_on_load": pEditor,
+                    "featureDetails": util.featureDetails
                 });
             }
             addEventHandler(pEditor, pOpts);
         } catch (e) {
-            util.debug.error("Error while try to load images when loading rich text editor.");
-            util.debug.error(e);
+            apex.debug.error({
+                "fct": util.featureDetails.name + " - " + "updateUpImageSrc",
+                "msg": "Error while try to load images when loading rich text editor.",
+                "err": e,
+                "featureDetails": util.featureDetails
+            });
         }
     }
 
@@ -316,8 +239,12 @@ var unleashRTE = (function () {
                         }
                     }
                 } catch (e) {
-                    util.debug.error("Error while try to calculate image width and height.");
-                    util.debug.error(e);
+                    apex.debug.error({
+                        "fct": util.featureDetails.name + " - " + "addImage",
+                        "msg": "Error while try to calculate image width and height.",
+                        "err": e,
+                        "featureDetails": util.featureDetails
+                    });
                 }
 
                 var imgSRC = apex.server.pluginUrl(pOpts.ajaxID, {
@@ -336,11 +263,19 @@ var unleashRTE = (function () {
                 return figured;
 
             } else {
-                util.debug.error("No primary key set for images please, so image could not be added to RTE. Please check PL/SQL Block if out parameter is set.");
+                apex.debug.error({
+                    "fct": util.featureDetails.name + " - " + "addImage",
+                    "msg": "No primary key set for images please, so image could not be added to RTE. Please check PL/SQL Block if out parameter is set.",
+                    "featureDetails": util.featureDetails
+                });
             }
         } catch (e) {
-            util.debug.error("Error while try to add images into richtexteditor with binary sources.");
-            util.debug.error(e);
+            apex.debug.error({
+                "fct": util.featureDetails.name + " - " + "addImage",
+                "msg": "Error while try to add images into richtexteditor with binary sources.",
+                "err": e,
+                "featureDetails": util.featureDetails
+            });
         }
     }
 
@@ -366,7 +301,13 @@ var unleashRTE = (function () {
             for (var i = 0; i < pFiles.length; i++) {
                 if (pFiles[i].type.indexOf("image") !== -1) {
                     var file = pFiles[i];
-                    util.debug.info(file);
+
+                    apex.debug.info({
+                        "fct": util.featureDetails.name + " - " + "uploadFiles",
+                        "file": file,
+                        "featureDetails": util.featureDetails
+                    });
+
                     var reader = new FileReader();
 
                     reader.onloadend = (function (pFile) {
@@ -383,7 +324,12 @@ var unleashRTE = (function () {
                                 imageSettings.width = this.width;
                                 imageSettings.height = this.height;
 
-                                util.debug.info("Start upload of " + pFile.name + " (" + pFile.type + ")");
+                                apex.debug.info({
+                                    "fct": util.featureDetails.name + " - " + "uploadFiles",
+                                    "msg": "Start upload of " + pFile.name + " (" + pFile.type + ")",
+                                    "featureDetails": util.featureDetails
+                                });
+
                                 apex.server.plugin(pOpts.ajaxID, {
                                     x01: "UPLOAD_IMAGE",
                                     x02: pFile.name,
@@ -392,8 +338,11 @@ var unleashRTE = (function () {
                                     pageItems: items2SubmitImgUp
                                 }, {
                                     success: function (pData) {
-                                        util.debug.info("Upload of " + pFile.name + " successful.");
-
+                                        apex.debug.info({
+                                            "fct": util.featureDetails.name + " - " + "uploadFiles",
+                                            "msg": "Upload of " + pFile.name + " successful.",
+                                            "featureDetails": util.featureDetails
+                                        });
                                         div.append(addImage(pFile.name, pData.pk, pOpts, imageSettings));
                                         if (fileIDX == pFiles.length) {
                                             if (pOpts.version === 5) {
@@ -411,11 +360,14 @@ var unleashRTE = (function () {
                                         apex.event.trigger(pOpts.affElementID, 'imageuploadifnished');
                                     },
                                     error: function (jqXHR, textStatus, errorThrown) {
-                                        util.debug.info("Upload error.");
-                                        util.debug.error(jqXHR);
-                                        util.debug.error(textStatus);
-                                        util.debug.error(errorThrown);
-                                        util.loader.stop(pOpts.affElementDIV);
+                                        apex.debug.error({
+                                            "fct": util.featureDetails.name + " - " + "uploadFiles",
+                                            "msg": "Image Upload error",
+                                            "jqXHR": jqXHR,
+                                            "textStatus": textStatus,
+                                            "errorThrown": errorThrown,
+                                            "featureDetails": util.featureDetails
+                                        });
                                         apex.event.trigger(pOpts.affElementID, 'imageuploaderror');
                                     }
                                 });
@@ -431,8 +383,12 @@ var unleashRTE = (function () {
                 }
             }
         } catch (e) {
-            util.debug.error("Error while try to add images to to db after drop or paste image");
-            util.debug.error(e);
+            apex.debug.error({
+                "fct": util.featureDetails.name + " - " + "uploadFiles",
+                "msg": "Error while try to add images to to db after drop or paste image",
+                "err": e,
+                "featureDetails": util.featureDetails
+            });
         }
     }
 
@@ -447,9 +403,14 @@ var unleashRTE = (function () {
             if (pOpts.version === 5) {
                 pEditor.editing.view.document.on('drop', function (e, data) {
                     e.stop();
-                    util.debug.info({
-                        "file_droped": e
+
+                    apex.debug.info({
+                        "fct": util.featureDetails.name + " - " + "addEventHandler",
+                        "msg": "File dropped - v5x",
+                        "event": e,
+                        "featureDetails": util.featureDetails
                     });
+
                     var dt = data.dataTransfer;
                     uploadFiles(dt.files, pEditor, pOpts);
                 });
@@ -457,13 +418,17 @@ var unleashRTE = (function () {
                 /* on pate image e.g. Screenshot */
                 pEditor.editing.view.document.on("paste", function (e, data) {
                     if (data.dataTransfer.files && data.dataTransfer.files.length > 0) {
-                        util.debug.info({
-                            "file_pasted": e
+                        e.stop();
+
+                        apex.debug.info({
+                            "fct": util.featureDetails.name + " - " + "addEventHandler",
+                            "msg": "File pasted - v5x",
+                            "event": e,
+                            "featureDetails": util.featureDetails
                         });
 
                         var files = [];
                         files.push(data.dataTransfer.files[0]);
-                        e.stop();
                         uploadFiles(files, pEditor, pOpts);
                     }
                 });
@@ -472,9 +437,14 @@ var unleashRTE = (function () {
                     e.data.preventDefault(true);
                     e.cancel();
                     e.stop();
-                    util.debug.info({
-                        "file_droped": e
+
+                    apex.debug.info({
+                        "fct": util.featureDetails.name + " - " + "addEventHandler",
+                        "msg": "File dropped - v4x",
+                        "event": e,
+                        "featureDetails": util.featureDetails
                     });
+
                     var dt = e.data.$.dataTransfer;
                     uploadFiles(dt.files, pEditor, pOpts);
                 });
@@ -482,21 +452,29 @@ var unleashRTE = (function () {
                 /* on pate image e.g. Screenshot */
                 pEditor.on("paste", function (e) {
                     if (e.data.dataTransfer._.files && e.data.dataTransfer._.files.length > 0) {
-                        util.debug.info({
-                            "file_pasted": e
+                        e.stop();
+                        e.cancel();
+
+                        apex.debug.info({
+                            "fct": util.featureDetails.name + " - " + "addEventHandler",
+                            "msg": "File pasted - v4x",
+                            "event": e,
+                            "featureDetails": util.featureDetails
                         });
 
                         var files = [];
                         files.push(e.data.dataTransfer._.files[0]);
-                        e.stop();
-                        e.cancel();
                         uploadFiles(files, pEditor, pOpts);
                     }
                 });
             }
         } catch (e) {
-            util.debug.error("Error while try to paste drop or pasted content in RTE");
-            util.debug.error(e);
+            apex.debug.error({
+                "fct": util.featureDetails.name + " - " + "addEventHandler",
+                "msg": "Error while try to paste drop or pasted content in RTE",
+                "err": e,
+                "featureDetails": util.featureDetails
+            });
         }
     }
 
@@ -522,7 +500,11 @@ var unleashRTE = (function () {
         } else if (CKEDITOR && CKEDITOR.instances) {
             return CKEDITOR.instances[pEement];
         } else {
-            util.debug.error("No CKE Editor found!");
+            apex.debug.error({
+                "fct": util.featureDetails.name + " - " + "getEditor",
+                "msg": "No CKE Editor found!",
+                "featureDetails": util.featureDetails
+            });
         }
     }
 
@@ -550,8 +532,11 @@ var unleashRTE = (function () {
             }
             var affCKE = getEditor(pOpts.affElement);
             if (affCKE) {
-                util.debug.info({
-                    "editor": affCKE
+
+                apex.debug.info({
+                    "fct": util.featureDetails.name + " - " + "printClob",
+                    "editor": affCKE,
+                    "featureDetails": util.featureDetails
                 });
 
                 function startIt() {
@@ -568,24 +553,34 @@ var unleashRTE = (function () {
                     startIt();
                 } else if (affCKE.instanceReady === true) {
                     startIt();
-                    util.debug.info("start instance was ready");
+                    apex.debug.info({
+                        "fct": util.featureDetails.name + " - " + "printClob",
+                        "msg": "start instance was ready",
+                        "featureDetails": util.featureDetails
+                    });
                 } else {
                     affCKE.on('instanceReady', function () {
                         startIt();
-                        util.debug.info("start on instance ready");
+                        apex.debug.info({
+                            "fct": util.featureDetails.name + " - " + "printClob",
+                            "msg": "start on instance ready",
+                            "featureDetails": util.featureDetails
+                        });
                     });
                 }
             }
 
         } catch (e) {
-            util.debug.error("Error while render CLOB");
-            util.debug.error(e);
+            apex.debug.error({
+                "fct": util.featureDetails.name + " - " + "printClob",
+                "msg": "Error while render CLOB",
+                "err": e,
+                "featureDetails": util.featureDetails
+            });
             apex.event.trigger(pOpts.affElementID, 'clobloaderror');
             apex.da.resume(pThis.resumeCallback, true);
         }
     }
-
-
 
     /***********************************************************************
      **
@@ -616,16 +611,24 @@ var unleashRTE = (function () {
                 dataType: "text",
                 success: function (pData) {
                     util.loader.stop(pOpts.affElementDIV);
-                    util.debug.info("Upload successful.");
+                    apex.debug.info({
+                        "fct": util.featureDetails.name + " - " + "uploadClob",
+                        "msg": "Clob Upload successful",
+                        "featureDetails": util.featureDetails
+                    });
                     apex.event.trigger(pOpts.affElementID, 'clobsavefinished');
                     apex.da.resume(pThis.resumeCallback, false);
                 },
                 error: function (jqXHR, textStatus, errorThrown) {
                     util.loader.stop(pOpts.affElementDIV);
-                    util.debug.info("Upload error.");
-                    util.debug.error(jqXHR);
-                    util.debug.error(textStatus);
-                    util.debug.error(errorThrown);
+                    apex.debug.error({
+                        "fct": util.featureDetails.name + " - " + "uploadClob",
+                        "msg": "Clob Upload error",
+                        "jqXHR": jqXHR,
+                        "textStatus": textStatus,
+                        "errorThrown": errorThrown,
+                        "featureDetails": util.featureDetails
+                    });
                     apex.event.trigger(pOpts.affElementID, 'clobsaveerror');
                     apex.da.resume(pThis.resumeCallback, true);
                 }
@@ -641,7 +644,14 @@ var unleashRTE = (function () {
     return {
         initialize: function (pThis, pOpts) {
 
-            util.debug.info(pOpts);
+            apex.debug.info({
+                "fct": util.featureDetails.name + " - " + "initialize",
+                "arguments": {
+                    "pThis": pThis,
+                    "pOpts": pOpts
+                },
+                "featureDetails": util.featureDetails
+            });
 
             var opts = pOpts;
 
@@ -717,10 +727,21 @@ var unleashRTE = (function () {
                             pageItems: items2Submit
                         }, {
                             success: function (pData) {
+                                apex.debug.info({
+                                    "fct": util.featureDetails.name + " - " + "initialize",
+                                    "msg": "AJAX data received",
+                                    "pData": pData,
+                                    "featureDetails": util.featureDetails
+                                });
                                 printClob(pThis, pData, opts);
                             },
                             error: function (d) {
-                                util.debug.error(d.responseText);
+                                apex.debug.error({
+                                    "fct": util.featureDetails.name + " - " + "initialize",
+                                    "msg": "AJAX data error",
+                                    "response": d,
+                                    "featureDetails": util.featureDetails
+                                });
                             },
                             dataType: "json"
                         });

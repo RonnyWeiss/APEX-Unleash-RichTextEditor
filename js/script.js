@@ -402,12 +402,14 @@ var unleashRTE = (function () {
             /* on drop image */
             if (pOpts.version === 5) {
                 pEditor.editing.view.document.on('drop', function (e, data) {
+                    data.preventDefault(true);
                     e.stop();
 
                     apex.debug.info({
                         "fct": util.featureDetails.name + " - " + "addEventHandler",
                         "msg": "File dropped - v5x",
                         "event": e,
+                        "data": data,
                         "featureDetails": util.featureDetails
                     });
 
@@ -418,12 +420,14 @@ var unleashRTE = (function () {
                 /* on pate image e.g. Screenshot */
                 pEditor.editing.view.document.on("paste", function (e, data) {
                     if (data.dataTransfer.files && data.dataTransfer.files.length > 0) {
+                        data.preventDefault(true);
                         e.stop();
 
                         apex.debug.info({
                             "fct": util.featureDetails.name + " - " + "addEventHandler",
                             "msg": "File pasted - v5x",
                             "event": e,
+                            "data": data,
                             "featureDetails": util.featureDetails
                         });
 

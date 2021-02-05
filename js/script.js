@@ -367,22 +367,57 @@ var unleashRTE = (function () {
 
         try {
             // Polyfill for IE
-            if (!FileReader.prototype.readAsBinaryString) {
-                FileReader.prototype.readAsBinaryString = function (fileData) {
-                    var binary = "";
-                    var pt = this;
-                    var reader = new FileReader();
-                    reader.onload = function (e) {
-                        var bytes = new Uint8Array(reader.result);
-                        var length = bytes.byteLength;
-                        for (var i = 0; i < length; i++) {
-                            binary += String.fromCharCode(bytes[i]);
-                        }
-                        //pt.result  - readonly so assign binary
-                        pt.content = binary;
-                        $(pt).trigger('onloadend');
+            if (window.FileReader) {
+                if (typeof FileReader.prototype.readAsBinaryString !== 'function') {
+                    console.log("Warning: Using readAsBinaryString polyfill");
+                    FileReader.prototype.readAsBinaryString = function (blb) {
+                        var reader = new FileReader();
+                        var that = this;
+                        var conversor = function (e) {
+                            var toConvert = e.target.result || '';
+                            var binary = '';
+                            var bytes = new Uint8Array(toConvert);
+                            var length = bytes.byteLength;
+                            var i = -1;
+                            while (++i < length) {
+                                binary += String.fromCharCode(bytes[i]);
+                            }
+                            var f = {};
+                            for (var property in e) {
+                                if (property != "target") {
+                                    f[property] = e[property];
+                                }
+                            }
+                            f.target = {};
+                            for (var property in e.target) {
+                                if (property != "result") {
+                                    f.target[property] = e.target[property];
+                                }
+                            }
+                            f.target.result = binary;
+                            that.onloadend(f);
+                        };
+                        if (!(this.onloadend === undefined || this.onloadend === null)) {
+                            reader.onloadend = conversor;
+                        };
+                        if (!(this.onerror === undefined || this.onerror === null)) {
+                            reader.onerror = this.onerror;
+                        };
+                        if (!(this.onabort === undefined || this.onabort === null)) {
+                            reader.onabort = this.onabort;
+                        };
+                        if (!(this.onloadstart === undefined || this.onloadstart === null)) {
+                            reader.onloadstart = this.onloadstart;
+                        };
+                        if (!(this.onprogress === undefined || this.onprogress === null)) {
+                            reader.onprogress = this.onprogress;
+                        };
+                        if (!(this.onload === undefined || this.onload === null)) {
+                            reader.onload = conversor;
+                        };
+                        //abort not implemented !!!
+                        reader.readAsArrayBuffer(blb);
                     }
-                    reader.readAsArrayBuffer(fileData);
                 }
             }
 

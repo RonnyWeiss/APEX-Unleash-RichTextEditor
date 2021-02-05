@@ -116,6 +116,8 @@ var unleashRTE = (function () {
         }
     };
 
+    var divAppend = $("<div></div>");
+
     /***********************************************************************
      **
      ** Used to cleanup image src before rte is saved
@@ -284,8 +286,7 @@ var unleashRTE = (function () {
      ** Used to upload and manage the base64 string
      **
      ***********************************************************************/
-    function handleBase64Str(base64Str, fileType, fileName, fileNumber, fileIDX, pOpts, pEditor) {
-        var div = $("<div></div>");
+    function handleBase64Str(base64Str, fileType, fileName, lastFile, pOpts, pEditor) {
         var items2SubmitImgUp = pOpts.items2SubmitImgUp;
         var image = new Image();
 
@@ -320,22 +321,22 @@ var unleashRTE = (function () {
                         "featureDetails": util.featureDetails
                     });
 
-                    div.append(addImage(fileName, pData.pk, pOpts, imageSettings));
-                    if (fileIDX == fileNumber) {
+                    divAppend.append(addImage(fileName, pData.pk, pOpts, imageSettings));
+                    if (lastFile) {
                         if (pOpts.version === 5) {
-                            var viewFragment = pEditor.data.processor.toView(div.html());
+                            var viewFragment = pEditor.data.processor.toView(divAppend.html());
                             var modelFragment = pEditor.data.toModel(viewFragment);
                             pEditor.model.insertContent(modelFragment, pEditor.model.document.selection);
                         } else {
-                            pEditor.insertHtml(div.html());
+                            pEditor.insertHtml(divAppend.html());
                         }
                         util.loader.stop(pOpts.affElementDIV);
+                        divAppend = $("<div></div>");
                     } else {
-                        div.append("<p>&nbsp;</p>");
+                        divAppend.append("<p>&nbsp;</p>");
                     }
 
                     apex.event.trigger(pOpts.affElementID, 'imageuploadifnished');
-                    return fileIDX++;
                 },
                 error: function (jqXHR, textStatus, errorThrown) {
                     apex.debug.error({
@@ -346,6 +347,7 @@ var unleashRTE = (function () {
                         "errorThrown": errorThrown,
                         "featureDetails": util.featureDetails
                     });
+                    divAppend = $("<div></div>");
                     apex.event.trigger(pOpts.affElementID, 'imageuploaderror');
                 }
             });
@@ -385,6 +387,7 @@ var unleashRTE = (function () {
             }
 
             var fileIDX = 1;
+            var lastFile = false;
 
             for (var i = 0; i < pFiles.length; i++) {
                 if (pFiles[i].type.indexOf("image") !== -1) {
@@ -397,16 +400,14 @@ var unleashRTE = (function () {
                     });
 
                     var reader = new FileReader();
-
                     reader.onloadend = (function (pFile) {
                         return function (pEvent) {
-
-                            if (reader.result) {
-                                reader.content = reader.result;
+                            var base64Str = btoa(pEvent.target.result);
+                            if (pFiles.length == fileIDX) {
+                                lastFile = true;
                             }
-
-                            var base64Str = btoa(reader.content);
-                            fileIDX = handleBase64Str(base64Str, pFile.type, pFile.name, pFiles.length, fileIDX, pOpts, pEditor);
+                            handleBase64Str(base64Str, pFile.type, pFile.name, lastFile, pOpts, pEditor);
+                            fileIDX++;
                         }
                     })(file);
                     reader.readAsBinaryString(file);
@@ -487,7 +488,8 @@ var unleashRTE = (function () {
                             "featureDetails": util.featureDetails
                         });
 
-                        var idx = handleBase64Str(str, fileType, fileName, 1, 1, pOpts, pEditor);
+                        var div = $("<div></div>");
+                        handleBase64Str(str, fileType, fileName, true, pOpts, pEditor);
                     } else {
                         if (data.dataTransfer.files && data.dataTransfer.files.length > 0) {
                             data.preventDefault(true);
@@ -549,8 +551,8 @@ var unleashRTE = (function () {
                             "fileName": fileName,
                             "featureDetails": util.featureDetails
                         });
-
-                        var idx = handleBase64Str(str, fileType, fileName, 1, 1, pOpts, pEditor);
+                        var div = $("<div></div>");
+                        handleBase64Str(str, fileType, fileName, true, pOpts, pEditor);
                     } else {
                         if (e.data.dataTransfer._.files && e.data.dataTransfer._.files.length > 0) {
                             e.stop();

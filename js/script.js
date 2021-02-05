@@ -3,7 +3,7 @@ var unleashRTE = (function () {
     var util = {
         featureDetails: {
             name: "APEX-Unleash-RichTextEditor",
-            scriptVersion: "2.1.1",
+            scriptVersion: "2.1.2",
             utilVersion: "1.4",
             url: "https://github.com/RonnyWeiss",
             license: "MIT"
@@ -279,15 +279,84 @@ var unleashRTE = (function () {
         }
     }
 
+    /***********************************************************************
+     **
+     ** Used to upload and manage the base64 string
+     **
+     ***********************************************************************/
+    function handleBase64Str(base64Str, fileType, fileName, fileNumber, fileIDX, pOpts, pEditor) {
+        var div = $("<div></div>");
+        var items2SubmitImgUp = pOpts.items2SubmitImgUp;
+        var image = new Image();
 
+        image.src = "data:" + fileType + ";base64," + base64Str;
+
+        var base64Arr = util.splitString2Array(base64Str);
+
+        image.onload = function () {
+            var imageSettings = {};
+            imageSettings.ratio = this.width / this.height;
+            imageSettings.width = this.width;
+            imageSettings.height = this.height;
+
+            apex.debug.info({
+                "fct": util.featureDetails.name + " - " + "uploadFiles",
+                "msg": "Start upload of " + fileName + " (" + fileType + ")",
+                "featureDetails": util.featureDetails
+            });
+
+            apex.server.plugin(pOpts.ajaxID, {
+                x01: "UPLOAD_IMAGE",
+                x02: fileName,
+                x03: fileType,
+                f01: base64Arr,
+                pageItems: items2SubmitImgUp
+            }, {
+                success: function (pData) {
+
+                    apex.debug.info({
+                        "fct": util.featureDetails.name + " - " + "uploadFiles",
+                        "msg": "Upload of " + fileName + " successful.",
+                        "featureDetails": util.featureDetails
+                    });
+
+                    div.append(addImage(fileName, pData.pk, pOpts, imageSettings));
+                    if (fileIDX == fileNumber) {
+                        if (pOpts.version === 5) {
+                            var viewFragment = pEditor.data.processor.toView(div.html());
+                            var modelFragment = pEditor.data.toModel(viewFragment);
+                            pEditor.model.insertContent(modelFragment, pEditor.model.document.selection);
+                        } else {
+                            pEditor.insertHtml(div.html());
+                        }
+                        util.loader.stop(pOpts.affElementDIV);
+                    } else {
+                        div.append("<p>&nbsp;</p>");
+                    }
+
+                    apex.event.trigger(pOpts.affElementID, 'imageuploadifnished');
+                    return fileIDX++;
+                },
+                error: function (jqXHR, textStatus, errorThrown) {
+                    apex.debug.error({
+                        "fct": util.featureDetails.name + " - " + "uploadFiles",
+                        "msg": "Image Upload error",
+                        "jqXHR": jqXHR,
+                        "textStatus": textStatus,
+                        "errorThrown": errorThrown,
+                        "featureDetails": util.featureDetails
+                    });
+                    apex.event.trigger(pOpts.affElementID, 'imageuploaderror');
+                }
+            });
+        };
+    }
     /***********************************************************************
      **
      ** Used to upload a new image 
      **
      ***********************************************************************/
     function uploadFiles(pFiles, pEditor, pOpts) {
-        var items2SubmitImgUp = pOpts.items2SubmitImgUp;
-
         if (!pFiles || pFiles.length === 0) return;
 
         if (pOpts.showLoader) {
@@ -295,8 +364,27 @@ var unleashRTE = (function () {
         }
 
         try {
+            // Polyfill for IE
+            if (!FileReader.prototype.readAsBinaryString) {
+                FileReader.prototype.readAsBinaryString = function (fileData) {
+                    var binary = "";
+                    var pt = this;
+                    var reader = new FileReader();
+                    reader.onload = function (e) {
+                        var bytes = new Uint8Array(reader.result);
+                        var length = bytes.byteLength;
+                        for (var i = 0; i < length; i++) {
+                            binary += String.fromCharCode(bytes[i]);
+                        }
+                        //pt.result  - readonly so assign binary
+                        pt.content = binary;
+                        $(pt).trigger('onloadend');
+                    }
+                    reader.readAsArrayBuffer(fileData);
+                }
+            }
+
             var fileIDX = 1;
-            var div = $("<div></div>");
 
             for (var i = 0; i < pFiles.length; i++) {
                 if (pFiles[i].type.indexOf("image") !== -1) {
@@ -312,68 +400,14 @@ var unleashRTE = (function () {
 
                     reader.onloadend = (function (pFile) {
                         return function (pEvent) {
-                            var base64Str = btoa(pEvent.target.result);
-                            var base64Arr = util.splitString2Array(base64Str);
 
-                            var image = new Image();
-                            image.src = "data:" + file.type + ";base64," + base64Str;
+                            if (reader.result) {
+                                reader.content = reader.result;
+                            }
 
-                            image.onload = function () {
-                                var imageSettings = {};
-                                imageSettings.ratio = this.width / this.height;
-                                imageSettings.width = this.width;
-                                imageSettings.height = this.height;
-
-                                apex.debug.info({
-                                    "fct": util.featureDetails.name + " - " + "uploadFiles",
-                                    "msg": "Start upload of " + pFile.name + " (" + pFile.type + ")",
-                                    "featureDetails": util.featureDetails
-                                });
-
-                                apex.server.plugin(pOpts.ajaxID, {
-                                    x01: "UPLOAD_IMAGE",
-                                    x02: pFile.name,
-                                    x03: pFile.type,
-                                    f01: base64Arr,
-                                    pageItems: items2SubmitImgUp
-                                }, {
-                                    success: function (pData) {
-                                        apex.debug.info({
-                                            "fct": util.featureDetails.name + " - " + "uploadFiles",
-                                            "msg": "Upload of " + pFile.name + " successful.",
-                                            "featureDetails": util.featureDetails
-                                        });
-                                        div.append(addImage(pFile.name, pData.pk, pOpts, imageSettings));
-                                        if (fileIDX == pFiles.length) {
-                                            if (pOpts.version === 5) {
-                                                var viewFragment = pEditor.data.processor.toView(div.html());
-                                                var modelFragment = pEditor.data.toModel(viewFragment);
-                                                pEditor.model.insertContent(modelFragment, pEditor.model.document.selection);
-                                            } else {
-                                                pEditor.insertHtml(div.html());
-                                            }
-                                            util.loader.stop(pOpts.affElementDIV);
-                                        } else {
-                                            div.append("<p>&nbsp;</p>");
-                                        }
-                                        fileIDX++;
-                                        apex.event.trigger(pOpts.affElementID, 'imageuploadifnished');
-                                    },
-                                    error: function (jqXHR, textStatus, errorThrown) {
-                                        apex.debug.error({
-                                            "fct": util.featureDetails.name + " - " + "uploadFiles",
-                                            "msg": "Image Upload error",
-                                            "jqXHR": jqXHR,
-                                            "textStatus": textStatus,
-                                            "errorThrown": errorThrown,
-                                            "featureDetails": util.featureDetails
-                                        });
-                                        apex.event.trigger(pOpts.affElementID, 'imageuploaderror');
-                                    }
-                                });
-                            };
+                            var base64Str = btoa(reader.content);
+                            fileIDX = handleBase64Str(base64Str, pFile.type, pFile.name, pFiles.length, fileIDX, pOpts, pEditor);
                         }
-
                     })(file);
                     reader.readAsBinaryString(file);
 
@@ -419,21 +453,49 @@ var unleashRTE = (function () {
 
                 /* on pate image e.g. Screenshot */
                 pEditor.editing.view.document.on("paste", function (e, data) {
-                    if (data.dataTransfer.files && data.dataTransfer.files.length > 0) {
+                    apex.debug.info({
+                        "fct": util.featureDetails.name + " - " + "addEventHandler",
+                        "msg": "File pasted - v5x",
+                        "event": e,
+                        "data": data,
+                        "featureDetails": util.featureDetails
+                    });
+
+                    if (data.datValue && data.dataValue.indexOf("src=\"data:image/") > 0 && data.dataValue.indexOf(";base64,") > 0) {
                         data.preventDefault(true);
                         e.stop();
 
+                        var beforeRepl = "src=\"data:";
+                        var b64Repl = "base64,";
+                        var fileTypeRepl = "image/";
+
+                        var str = data.dataValue;
+                        str = str.substring(str.indexOf(beforeRepl) + beforeRepl.length);
+                        str = str.split("\"")[0];
+                        var fileType = str.split(";")[0];
+                        var fileEnd = fileType.substring(fileType.indexOf(fileTypeRepl) + fileTypeRepl.length);
+                        str = str.substring(str.indexOf(b64Repl) + b64Repl.length);
+                        var myDate = new Date();
+                        var fileName = "image-" + myDate.toISOString() + "." + fileEnd
+
                         apex.debug.info({
                             "fct": util.featureDetails.name + " - " + "addEventHandler",
-                            "msg": "File pasted - v5x",
-                            "event": e,
-                            "data": data,
+                            "data.dataValue": data.dataValue,
+                            "base64Str": str,
+                            "fileType": fileType,
+                            "fileName": fileName,
                             "featureDetails": util.featureDetails
                         });
 
-                        var files = [];
-                        files.push(data.dataTransfer.files[0]);
-                        uploadFiles(files, pEditor, pOpts);
+                        var idx = handleBase64Str(str, fileType, fileName, 1, 1, pOpts, pEditor);
+                    } else {
+                        if (data.dataTransfer.files && data.dataTransfer.files.length > 0) {
+                            data.preventDefault(true);
+                            e.stop();
+                            var files = [];
+                            files.push(data.dataTransfer.files[0]);
+                            uploadFiles(files, pEditor, pOpts);
+                        }
                     }
                 });
             } else {
@@ -455,20 +517,48 @@ var unleashRTE = (function () {
 
                 /* on pate image e.g. Screenshot */
                 pEditor.on("paste", function (e) {
-                    if (e.data.dataTransfer._.files && e.data.dataTransfer._.files.length > 0) {
+                    apex.debug.info({
+                        "fct": util.featureDetails.name + " - " + "addEventHandler",
+                        "msg": "File pasted - v4x",
+                        "event": e,
+                        "featureDetails": util.featureDetails
+                    });
+
+                    if (e.data && e.data.dataValue && e.data.dataValue.indexOf("src=\"data:image/") > 0 && e.data.dataValue.indexOf(";base64,") > 0) {
                         e.stop();
                         e.cancel();
 
+                        var beforeRepl = "src=\"data:";
+                        var b64Repl = "base64,";
+                        var fileTypeRepl = "image/";
+
+                        var str = e.data.dataValue;
+                        str = str.substring(str.indexOf(beforeRepl) + beforeRepl.length);
+                        str = str.split("\"")[0];
+                        var fileType = str.split(";")[0];
+                        var fileEnd = fileType.substring(fileType.indexOf(fileTypeRepl) + fileTypeRepl.length);
+                        str = str.substring(str.indexOf(b64Repl) + b64Repl.length);
+                        var myDate = new Date();
+                        var fileName = "image-" + myDate.toISOString() + "." + fileEnd
+
                         apex.debug.info({
                             "fct": util.featureDetails.name + " - " + "addEventHandler",
-                            "msg": "File pasted - v4x",
-                            "event": e,
+                            "e.data.dataValue": e.data.dataValue,
+                            "base64Str": str,
+                            "fileType": fileType,
+                            "fileName": fileName,
                             "featureDetails": util.featureDetails
                         });
 
-                        var files = [];
-                        files.push(e.data.dataTransfer._.files[0]);
-                        uploadFiles(files, pEditor, pOpts);
+                        var idx = handleBase64Str(str, fileType, fileName, 1, 1, pOpts, pEditor);
+                    } else {
+                        if (e.data.dataTransfer._.files && e.data.dataTransfer._.files.length > 0) {
+                            e.stop();
+                            e.cancel();
+                            var files = [];
+                            files.push(e.data.dataTransfer._.files[0]);
+                            uploadFiles(files, pEditor, pOpts);
+                        }
                     }
                 });
             }

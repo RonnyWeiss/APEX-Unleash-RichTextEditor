@@ -3,7 +3,7 @@ var unleashRTE = (function () {
     var util = {
         featureDetails: {
             name: "APEX-Unleash-RichTextEditor",
-            scriptVersion: "2.1.2",
+            scriptVersion: "2.1.2.1",
             utilVersion: "1.4",
             url: "https://github.com/RonnyWeiss",
             license: "MIT"
@@ -216,7 +216,7 @@ var unleashRTE = (function () {
                 var items2SubmitImgDown = pOpts.items2SubmitImgDown;
                 var figured = $("<figure></figure>");
                 figured.css("text-align", "center");
-                figured.addClass("image")
+                figured.addClass("image");
 
                 var img = $("<img>");
                 img.attr("alt", "aih##" + pPK);
@@ -624,8 +624,15 @@ var unleashRTE = (function () {
      **
      ***********************************************************************/
     function getEditor(pEement) {
+        var selQuery = "#" + pEement + "_CONTAINER .ck-editor__editable";
 
-        var domEl = document.querySelector('.ck-editor__editable');
+        apex.debug.info({
+            "fct": util.featureDetails.name + " - " + "getEditor",
+            "selQuery": selQuery,
+            "featureDetails": util.featureDetails
+        });
+
+        var domEl = document.querySelector(selQuery);
         if (domEl && domEl.ckeditorInstance) {
             return domEl.ckeditorInstance;
         } else if (CKEDITOR && CKEDITOR.instances) {
@@ -634,6 +641,7 @@ var unleashRTE = (function () {
             apex.debug.error({
                 "fct": util.featureDetails.name + " - " + "getEditor",
                 "msg": "No CKE Editor found!",
+                "selQuery": selQuery,
                 "featureDetails": util.featureDetails
             });
         }

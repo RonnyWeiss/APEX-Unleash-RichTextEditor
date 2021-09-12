@@ -3,7 +3,7 @@ var unleashRTE = (function () {
     var util = {
         featureDetails: {
             name: "APEX-Unleash-RichTextEditor",
-            scriptVersion: "2.1.2.3",
+            scriptVersion: "2.1.2.4",
             utilVersion: "1.6",
             url: "https://github.com/RonnyWeiss",
             license: "MIT"
@@ -118,12 +118,42 @@ var unleashRTE = (function () {
 
     var divAppend = $("<div></div>");
 
+
     /***********************************************************************
      **
      ** Used to cleanup image src before rte is saved
      **
      ***********************************************************************/
-    function cleanUpImageSrc(pEditor, pOpts) {
+    function getStillExistingImages(pEditor) {
+        try {
+            var div = $("<div></div>");
+            div[0].innerHTML = pEditor.getData();
+            var pkArr = [];
+            $.each(div.find('img[alt*="aih#"]'), function (i, imgItem) {
+                var pk = imgItem.title;
+                if (!pk) {
+                    pk = imgItem.alt.split("aih##")[1];
+                }
+                pkArr.push(pk);
+            });
+
+            return pkArr;
+        } catch (e) {
+            apex.debug.error({
+                "fct": util.featureDetails.name + " - " + "getStillExistingImages",
+                "msg": "Error while try to find existing images richtexteditor.",
+                "err": e,
+                "featureDetails": util.featureDetails
+            });
+        }
+    }
+
+    /***********************************************************************
+     **
+     ** Used to cleanup image src before rte is saved
+     **
+     ***********************************************************************/
+    function cleanUpImageSrc(pEditor) {
         try {
             var div = $("<div></div>");
             div[0].innerHTML = pEditor.getData();
@@ -736,7 +766,8 @@ var unleashRTE = (function () {
     function uploadClob(pThis, pOpts) {
         var edi = getEditor(pOpts.affElement);
         if (edi) {
-            var clob = cleanUpImageSrc(edi, pOpts);
+            var clob = cleanUpImageSrc(edi);
+            var remainingImages = getStillExistingImages(edi);
 
             if (pOpts.unEscapeHTML) {
                 clob = util.unEscapeHTML(clob);
@@ -762,7 +793,7 @@ var unleashRTE = (function () {
                         "msg": "Clob Upload successful",
                         "featureDetails": util.featureDetails
                     });
-                    apex.event.trigger(pOpts.affElementID, 'clobsavefinished');
+                    apex.event.trigger(pOpts.affElementID, 'clobsavefinished', remainingImages.join(":"));
                     apex.da.resume(pThis.resumeCallback, false);
                 },
                 error: function (jqXHR, textStatus, errorThrown) {
@@ -775,7 +806,7 @@ var unleashRTE = (function () {
                         "errorThrown": errorThrown,
                         "featureDetails": util.featureDetails
                     });
-                    apex.event.trigger(pOpts.affElementID, 'clobsaveerror');
+                    apex.event.trigger(pOpts.affElementID, 'clobsaveerror', remainingImages.join(":"));
                     apex.da.resume(pThis.resumeCallback, true);
                 }
             });

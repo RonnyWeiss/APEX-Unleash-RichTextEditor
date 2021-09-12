@@ -3,7 +3,7 @@ var unleashRTE = (function () {
     var util = {
         featureDetails: {
             name: "APEX-Unleash-RichTextEditor",
-            scriptVersion: "2.1.2.2",
+            scriptVersion: "2.1.2.3",
             utilVersion: "1.6",
             url: "https://github.com/RonnyWeiss",
             license: "MIT"
@@ -472,19 +472,24 @@ var unleashRTE = (function () {
             /* on drop image */
             if (pOpts.version === 5) {
                 pEditor.editing.view.document.on('drop', function (e, data) {
-                    data.preventDefault(true);
-                    e.stop();
+                    if (data.dataTransfer && data.dataTransfer.files && data.dataTransfer.files.length > 0) {
+                        if (data.dataTransfer._native && data.dataTransfer._native.dropEffect === "move") {
+                            return;
+                        }
+                        data.preventDefault(true);
+                        e.stop();
 
-                    apex.debug.info({
-                        "fct": util.featureDetails.name + " - " + "addEventHandler",
-                        "msg": "File dropped - v5x",
-                        "event": e,
-                        "data": data,
-                        "featureDetails": util.featureDetails
-                    });
+                        apex.debug.info({
+                            "fct": util.featureDetails.name + " - " + "addEventHandler",
+                            "msg": "File dropped - v5x",
+                            "event": e,
+                            "data": data,
+                            "featureDetails": util.featureDetails
+                        });
 
-                    var dt = data.dataTransfer;
-                    uploadFiles(dt.files, pEditor, pOpts);
+                        var dt = data.dataTransfer;
+                        uploadFiles(dt.files, pEditor, pOpts);
+                    }
                 });
 
                 /* on pate image e.g. Screenshot */
@@ -561,33 +566,35 @@ var unleashRTE = (function () {
                         "featureDetails": util.featureDetails
                     });
 
-                    if (e.data && e.data.dataValue && e.data.dataValue.indexOf("src=\"data:image/") > 0 && e.data.dataValue.indexOf(";base64,") > 0) {
-                        e.stop();
-                        e.cancel();
+                    if (e.data && e.data.dataValue && e.data.dataValue.indexOf("src=\"data:image/") > 0 && e.data.dataValue.indexOf(";base64,") > 0 && e.data.dataValue.indexOf("data-cke-widget-wrapper") <= 0) {
+                        if (e.data && e.data.method != "drop") {
+                            e.stop();
+                            e.cancel();
 
-                        var beforeRepl = "src=\"data:";
-                        var b64Repl = "base64,";
-                        var fileTypeRepl = "image/";
+                            var beforeRepl = "src=\"data:";
+                            var b64Repl = "base64,";
+                            var fileTypeRepl = "image/";
 
-                        var str = e.data.dataValue;
-                        str = str.substring(str.indexOf(beforeRepl) + beforeRepl.length);
-                        str = str.split("\"")[0];
-                        var fileType = str.split(";")[0];
-                        var fileEnd = fileType.substring(fileType.indexOf(fileTypeRepl) + fileTypeRepl.length);
-                        str = str.substring(str.indexOf(b64Repl) + b64Repl.length);
-                        var myDate = new Date();
-                        var fileName = "image-" + myDate.toISOString() + "." + fileEnd
+                            var str = e.data.dataValue;
+                            str = str.substring(str.indexOf(beforeRepl) + beforeRepl.length);
+                            str = str.split("\"")[0];
+                            var fileType = str.split(";")[0];
+                            var fileEnd = fileType.substring(fileType.indexOf(fileTypeRepl) + fileTypeRepl.length);
+                            str = str.substring(str.indexOf(b64Repl) + b64Repl.length);
+                            var myDate = new Date();
+                            var fileName = "image-" + myDate.toISOString() + "." + fileEnd
 
-                        apex.debug.info({
-                            "fct": util.featureDetails.name + " - " + "addEventHandler",
-                            "e.data.dataValue": e.data.dataValue,
-                            "base64Str": str,
-                            "fileType": fileType,
-                            "fileName": fileName,
-                            "featureDetails": util.featureDetails
-                        });
-                        var div = $("<div></div>");
-                        handleBase64Str(str, fileType, fileName, true, pOpts, pEditor);
+                            apex.debug.info({
+                                "fct": util.featureDetails.name + " - " + "addEventHandler",
+                                "e.data.dataValue": e.data.dataValue,
+                                "base64Str": str,
+                                "fileType": fileType,
+                                "fileName": fileName,
+                                "featureDetails": util.featureDetails
+                            });
+                            var div = $("<div></div>");
+                            handleBase64Str(str, fileType, fileName, true, pOpts, pEditor);
+                        }
                     } else {
                         if (e.data.dataTransfer._.files && e.data.dataTransfer._.files.length > 0) {
                             e.stop();

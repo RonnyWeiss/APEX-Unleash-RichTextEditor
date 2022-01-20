@@ -37,12 +37,16 @@ wwv_flow_api.create_plugin(
 ,p_category=>'EXECUTE'
 ,p_supported_ui_types=>'DESKTOP'
 ,p_plsql_code=>wwv_flow_string.join(wwv_flow_t_varchar2(
+'PROCEDURE GET_FILE (',
 '    P_IN_PLSQL_PRINT_IMG   VARCHAR2,',
 '    P_IN_PK                VARCHAR2,',
 '    P_OUT_BLOB             OUT   BLOB,',
 '    P_OUT_FILE_NAME        OUT   VARCHAR2,',
 '    P_OUT_MIME_TYPE        OUT   VARCHAR2,',
 '    P_OUT_CACHE_TIME       OUT   NUMBER',
+') AS',
+'',
+'    VR_BIND_NAMES          SYS.DBMS_SQL.VARCHAR2_TABLE := WWV_FLOW_UTILITIES.GET_BINDS(P_IN_PLSQL_PRINT_IMG);',
 '    VR_CURS                BINARY_INTEGER;',
 '    VR_EXEC                BINARY_INTEGER;',
 '    VR_BINDS               VARCHAR(100);',

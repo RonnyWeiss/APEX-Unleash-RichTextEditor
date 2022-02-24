@@ -3,7 +3,7 @@ var unleashRTE = (function () {
     var util = {
         featureDetails: {
             name: "APEX-Unleash-RichTextEditor",
-            scriptVersion: "2.1.2.4",
+            scriptVersion: "2.1.2.5",
             utilVersion: "1.6",
             url: "https://github.com/RonnyWeiss",
             license: "MIT"

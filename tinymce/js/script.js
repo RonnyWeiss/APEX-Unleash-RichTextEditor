@@ -3,7 +3,7 @@ const unleashTinyMCE = function (apex, $, domPurify) {
     const util = {
         featureDetails: {
             name: "APEX Unleash RichTextEditor (TinyMCE)",
-            scriptVersion: "24.03.20",
+            scriptVersion: "24.03.22",
             utilVersion: "22.11.28",
             url: "https://github.com/RonnyWeiss",
             license: "MIT"
@@ -76,7 +76,7 @@ const unleashTinyMCE = function (apex, $, domPurify) {
         return pkArr;
     }
 
-    // Used to cleanup image src before rte is saved  
+    // Used to cleanup image src before rte is saved
     function cleanUpImageSrc(pEditor) {
         let div = $("<div>");
         div.html(pEditor.getContent());
@@ -174,7 +174,7 @@ const unleashTinyMCE = function (apex, $, domPurify) {
                                         if (divTemp[0].innerHTML) {
                                             pOpts.rteItem.setValue(divTemp[0].innerHTML, null, pOpts.suppressChangeEvent);
                                         }
-                                    })
+                                    });
                                     if ((pData.index + 1) === response.length) {
                                         apex.event.trigger(pOpts.rteSel, "imageuploadifnished");
                                         if (pOpts.showLoader) {
@@ -215,7 +215,7 @@ const unleashTinyMCE = function (apex, $, domPurify) {
         return domPurify.sanitize(pCLOB, pOpts.sanitizeOptions);
     }
 
-    // Used to print the clob value to the elements that are in data json     
+    // Used to print the clob value to the elements that are in data json
     function printClob(pThis, pData, pOpts) {
         try {
             let str;
@@ -228,7 +228,7 @@ const unleashTinyMCE = function (apex, $, domPurify) {
             }
 
             updateUpImageSrc(pOpts, str);
-            // debounce is needed to prevent mutiple events executed when mutiple files are dropped into the editor
+            // debounce is needed to prevent multiple events executed when multiple files are dropped into the editor
             pOpts.rteInstance.on("change", apex.util.debounce(function (e, data) {
                 uploadFiles(pOpts);
             }, 50));
@@ -262,7 +262,7 @@ const unleashTinyMCE = function (apex, $, domPurify) {
             pageItems: pOpts.items2Submit
         }, {
             dataType: "text",
-            success: function (pData) {
+            success: function () {
                 util.loader.stop(pOpts.rteContainerSel);
                 apex.event.trigger(pOpts.rteSel, "clobsavefinished", remainingImages.join(":"));
                 apex.da.resume(pThis.resumeCallback, false);
@@ -281,6 +281,16 @@ const unleashTinyMCE = function (apex, $, domPurify) {
                 apex.da.resume(pThis.resumeCallback, true);
             }
         });
+    }
+
+    function showInstanceError(pOpts) {
+        apex.message.showErrors([{
+            type: "error",
+            location: ["page", "inline"],
+            pageItem: pOpts.rteId,
+            message: `${util.featureDetails.name} supports only TincyMCE based Rich Text Editor with Format set to "HTML"!`,
+            unsafe: false
+        }]);
     }
 
     // init
@@ -310,21 +320,24 @@ const unleashTinyMCE = function (apex, $, domPurify) {
                 opts.rteItem = apex.item(opts.rteId);
                 opts.rteSel = `#${opts.rteId}`;
                 opts.rteContainerSel = `${opts.rteSel}_CONTAINER`;
-                pOpts.rteInstance = opts.rteItem.getEditor();
+
+
+                if (opts.rteItem && typeof opts.rteItem.getEditor === "function") {
+                    pOpts.rteInstance = opts.rteItem.getEditor();
+                } else {
+                    showInstanceError(opts);
+                    apex.da.resume(pThis.resumeCallback, true);
+                    return false;
+                }
 
                 if (!pOpts.rteInstance || pOpts.rte$.attr("mode") !== "html") {
-                    apex.message.showErrors([{
-                        type: "error",
-                        location: ["page", "inline"],
-                        pageItem: pOpts.rteId,
-                        message: `${util.featureDetails.name} supports only TincyMCE based Rich Text Editor with Format set to "HTML"!`,
-                        unsafe: false
-                    }]);
+                    showInstanceError(opts);
+                    apex.da.resume(pThis.resumeCallback, true);
                     return false;
                 }
                 // show loader when set
                 if (opts.showLoader) {
-                    util.loader.start(opts.rteContainerSel)
+                    util.loader.start(opts.rteContainerSel);
                 }
                 // download clob
                 if (opts.functionType === "RENDER") {
@@ -351,5 +364,5 @@ const unleashTinyMCE = function (apex, $, domPurify) {
                 }
             }
         }
-    }
+    };
 };

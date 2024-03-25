@@ -3,7 +3,7 @@ const unleashTinyMCE = function (apex, $, domPurify) {
     const util = {
         featureDetails: {
             name: "APEX Unleash RichTextEditor (TinyMCE)",
-            scriptVersion: "24.03.22",
+            scriptVersion: "24.03.23",
             utilVersion: "22.11.28",
             url: "https://github.com/RonnyWeiss",
             license: "MIT"
@@ -136,7 +136,7 @@ const unleashTinyMCE = function (apex, $, domPurify) {
                         }
                         response.forEach(function (element, index) {
                             const blobInfo = element.blobInfo,
-                                fileName = blobInfo.filename(),
+                                fileName = blobInfo.blob().name,
                                 mimeType = blobInfo.blob().type,
                                 base64File = "data:" + blobInfo.blob().type + ";base64," + blobInfo.base64();
 

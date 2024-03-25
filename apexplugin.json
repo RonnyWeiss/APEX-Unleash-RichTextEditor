@@ -1,6 +1,6 @@
 {
     "name": "APEX Unleash RichTextEditor",
-    "version": "24.03.22",
+    "version": "24.03.23",
     "description": "This plug-in makes it possible to add important features that IMHO simply lacks in the RichTextEditor:\r\n- Load and save CLOB\r\n- It can remove dangerous HTML code from the CLOB or you can escaped the whole CLOB\r\n- If images are inserted into the RTE via Drag'n'Drop or screenshots are inserted into the RTE via CTRL+V, they are loaded into the database as BLOB and only referenced in the CLOB.<br><b>Restrictions: You can only add one RTE Item in Affected Elements in Dyanmic Action. When using Multiple RTE Items on one page then you need to add one Unleash RTE Plug-in Dynamic Action for each item!</b><p><b>Important clarification: My work in the development team of Oracle APEX is in no way related to my open source projects or the plug-ins here on apex.world! All plug-ins are built in my spare time and are not supported by Oracle!</b></p>",
     "keywords": ["oracle", "apex", "plugin", "dynamic action", "security"],
     "homepage": "https://github.com/RonnyWeiss/APEX-Unleash-RichTextEditor",
